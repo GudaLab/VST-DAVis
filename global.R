@@ -78,3 +78,22 @@ source("scripts/PrctCellExpringGene.R")
 options(shiny.maxRequestSize=2000*1024^2)
 options(future.globals.maxSize= 925289600000)
 Sys.setenv(OPENAI_API_KEY = 'ADD key here')  #Add your key here
+
+
+# URL of the zip file
+zip_url <- "https://www.gudalab-rtools.net/example_data.zip"
+# Path for the downloaded zip file
+zip_file <- tempfile(fileext = ".zip")
+# Define target directory inside Shiny app's www folder
+target_dir <- file.path("www")
+# Create www folder if it doesn't exist
+if (!dir.exists(target_dir)) {
+  dir.create(target_dir, recursive = TRUE)
+}
+# Download the zip file
+download.file(zip_url, zip_file, mode = "wb")
+# Extract the zip file into the www folder
+unzip(zip_file, exdir = target_dir)
+# Remove the zip file after extraction
+file.remove(zip_file)
+cat("Files extracted to:", target_dir, "\n")
