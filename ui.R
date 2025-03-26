@@ -819,10 +819,11 @@ tabPanel(
   sidebarLayout(
     sidebarPanel(id="subclustering_multiple_sidebar",
                  h3(id = "m_subclustering0", "Please run upto Single or Multiple samples Analysis upto Celltype prediction to begin this analysis"),
-                 selectInput("m_subclustering1", label = "Select the cluster type for sub clustering", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted", "Select the gene of interest to extract the cells"="selected_gene"), selected = "seurat_clusters"),
+                 selectInput("m_subclustering1", label = "Select the cluster type for sub clustering", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted", "Select the gene of interest to extract the cells"="selected_gene", "Exclude cells expressing the selected genes, and retain the remaining cells"="exclude_selected_gene"), selected = "seurat_clusters"),
                  uiOutput("m_subclustering_2"),
                  uiOutput("m_subclustering_3"),
                  textInput("m_subclustering_4", label ="Type gene name to extract the cells eg: (MEF2B) or (MEF2B,POLD2)", value = "", width = NULL, placeholder = NULL),
+                 textInput("m_subclustering_5", label ="Type gene name to exclude the cells eg: (MEF2B) or (MEF2B,POLD2)", value = "", width = NULL, placeholder = NULL),
                  
                  # uiOutput("m_subclustering_4"),
                  # uiOutput("m_subclustering_5"),
