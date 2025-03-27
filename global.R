@@ -16,7 +16,6 @@ if (!require("tibble")) install.packages("tibble")
 if (!require("HGNChelper")) install.packages("HGNChelper") 
 if (!require("openai")) install.packages("openai")
 if (!require("metap")) install.packages("metap")
-# if (!require("harmony")) install.packages("harmony")
 if (!require("ggrepel")) install.packages("ggrepel")
 if (!require("R.utils")) install.packages("R.utils")
 if (!require("circlize")) install.packages("circlize")
@@ -38,7 +37,6 @@ if (!require("celldex")) BiocManager::install("celldex", update = FALSE)
 if (!require("SingleR")) BiocManager::install("SingleR", update = FALSE)
 if (!require("scRNAseq")) BiocManager::install("scRNAseq", update = FALSE)
 if (!require("GenomicRanges"))BiocManager::install("GenomicRanges", update = FALSE)
-# if (!require("DoubletFinder")) BiocManager::install("chris-mcginnis-ucsf/DoubletFinder", update = FALSE)
 if (!require("GPTCelltype")) BiocManager::install("Winnie09/GPTCelltype", update = FALSE)
 if (!require("openxlsx")) BiocManager::install("ycphs/openxlsx", update = FALSE)
 if (!require("glmGamPoi"))BiocManager::install("glmGamPoi", update = FALSE)
@@ -80,20 +78,35 @@ options(future.globals.maxSize= 925289600000)
 Sys.setenv(OPENAI_API_KEY = 'ADD key here')  #Add your key here
 
 
+
 # URL of the zip file
 zip_url <- "https://www.gudalab-rtools.net/example_data.zip"
-# Path for the downloaded zip file
-zip_file <- tempfile(fileext = ".zip")
-# Define target directory inside Shiny app's www folder
+
+# Define target directory and subdirectory
 target_dir <- file.path("www")
-# Create www folder if it doesn't exist
-if (!dir.exists(target_dir)) {
-  dir.create(target_dir, recursive = TRUE)
+example_data_dir <- file.path(target_dir, "example_data")
+
+# Check if example_data already exists
+if (!dir.exists(example_data_dir)) {
+  # Create www folder if it doesn't exist
+  if (!dir.exists(target_dir)) {
+    dir.create(target_dir, recursive = TRUE)
+  }
+  
+  # Path for the downloaded zip file
+  zip_file <- tempfile(fileext = ".zip")
+  
+  # Download the zip file
+  download.file(zip_url, zip_file, mode = "wb")
+  
+  # Extract the zip file into the www folder
+  unzip(zip_file, exdir = target_dir)
+  
+  # Remove the zip file after extraction
+  file.remove(zip_file)
+  
+  cat("Files extracted to:", target_dir, "\n")
+} else {
+  cat("example_data folder already exists. Skipping download.\n")
 }
-# Download the zip file
-download.file(zip_url, zip_file, mode = "wb")
-# Extract the zip file into the www folder
-unzip(zip_file, exdir = target_dir)
-# Remove the zip file after extraction
-file.remove(zip_file)
-cat("Files extracted to:", target_dir, "\n")
+
