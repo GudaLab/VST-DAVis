@@ -47,7 +47,7 @@ shinyUI(
     <p>Identifies expressed genes between two groups, with visualization options including Spatial Feature,  Dot, Violin, Ridge, Feature, or Volcano plots.</p>
 
     <h3>2. Subclustering</h3>
-    <p>Allows sub-clustering within one or more clusters from single or multiple sample analyses, following similar steps as in the primary analysis.</p>
+    <p>Allows sub-clustering within one or more clusters from single or multiple sample analyses or gene of interst in positive or negative selection, which follows similar steps as in the primary analysis.</p>
 
     <h3>3. Correlation Network Analysis</h3>
     <p>Uses the genesorteR package to identify the correlation between cell clusters. Provides correlation summary tables and visualizations of correlation matrix and network plots.</p>
@@ -320,7 +320,7 @@ tabPanel(
     column(width =4, numericInput("multiple_sample_var_genes", label = "Number of top variable features", value = 2000)),
     
     #),
-    column(width =4, numericInput("multiple_sample_var_genes1", label = "Number of top variable features", value = 1000)),
+    column(width =4, numericInput("multiple_sample_var_genes1", label = "Number of top variable features", value = 2000)),
     column(width =4, numericInput("multiple_sample_pca_dim", label = "Number of dimensions (PCA)", value = 30)),
     br(),
     column(width =4, actionBttn("multiple_sample_normalization", "Submit",  style = "unite",color = "primary", icon = icon("download"))),
@@ -608,7 +608,7 @@ tabPanel(
   fluidRow(   
     box(id = "m_celltype_box1",
         h3("Predict Cell Type "),
-        h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype"),
+        h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype. To use GPTCelltype locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file"),
         column(6, selectInput("m_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 1)),
     ),
   ),
@@ -819,11 +819,11 @@ tabPanel(
   sidebarLayout(
     sidebarPanel(id="subclustering_multiple_sidebar",
                  h3(id = "m_subclustering0", "Please run upto Single or Multiple samples Analysis upto Celltype prediction to begin this analysis"),
-                 selectInput("m_subclustering1", label = "Select the cluster type for sub clustering", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted", "Select the gene of interest to extract the cells"="selected_gene", "Exclude cells expressing the selected genes, and retain the remaining cells"="exclude_selected_gene"), selected = "seurat_clusters"),
+                 selectInput("m_subclustering1", label = "Select the cluster type for sub clustering", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted", "Select the gene of interest to extract the cells (positive selection)"="selected_gene", "Exclude cells expressing the selected genes, and retain the remaining cells (negative selection)"="exclude_selected_gene"), selected = "seurat_clusters"),
                  uiOutput("m_subclustering_2"),
                  uiOutput("m_subclustering_3"),
-                 textInput("m_subclustering_4", label ="Type gene name to extract the cells eg: (MEF2B) or (MEF2B,POLD2)", value = "", width = NULL, placeholder = NULL),
-                 textInput("m_subclustering_5", label ="Type gene name to exclude the cells eg: (MEF2B) or (MEF2B,POLD2)", value = "", width = NULL, placeholder = NULL),
+                 textInput("m_subclustering_4", label ="Type gene name to extract the cells eg: (MEF2B) or (MEF2B,DTX1)", value = "", width = NULL, placeholder = NULL),
+                 textInput("m_subclustering_5", label ="Type gene name to exclude the cells eg: (MEF2B) or (MEF2B,DTX1)", value = "", width = NULL, placeholder = NULL),
                  
                  # uiOutput("m_subclustering_4"),
                  # uiOutput("m_subclustering_5"),
@@ -2037,25 +2037,25 @@ tabPanel(
 tabPanel(
   "Manual",
   mainPanel(
-    HTML("<h1 align='center'>Visium HD Spatial Transcriptomics Data Analysis and Visualization</h1>
+    HTML("<h1 align='center'>Visium HD Spatial Transcriptomics Data Analysis and Visualization (VST-DAVis)</h1>
 <hr>
 <h3>This section will introduce how to prepare input files:</h3>
 <p><strong>Supported Input Formats:</strong></p>
 <ol>
   <li><strong>H5 Files, spatial image folder (Space Ranger Output) and zip it to single folder for each samples</strong></li>
 <ul>
-  <li>Cell Ranger file: filtered_feature_bc_matrix.h5.</li>
+  <li>Space Ranger file: filtered_feature_bc_matrix.h5.</li>
 </ul>
 
-  <li><strong>Cell Ranger Matrix Files</strong></li>
+  <li><strong>Space Ranger Matrix Files</strong></li>
 <ul>
-  <li>Cell Ranger files: matrix.mtx.gz, feature.tsv.gz, barcode.tsv.gz, spatial image folder and zip it to single folder for each samples.</li>
+  <li>Space Ranger files: matrix.mtx.gz, feature.tsv.gz, barcode.tsv.gz, spatial image folder and zip it to single folder for each samples.</li>
 </ul>
 </ol>
 <img src='images/folder_image.jpg' width='800' height='600' alt=''/>
 <p><strong>Data Size and Handling:</strong></p>
 <ul>
-  <li>The tool can handle scRNA-seq data up to 3GB in the specified formats.</li>
+  <li>The tool can handle VST-DAVis data up to 3GB in the specified formats.</li>
   <li>Supports analysis of single or multiple samples, including up to six sample groups.</li>
   <li>After data upload, users can proceed with the analysis through a step-by-step workflow for the 1st Module, with the 'Next Step' button guiding users through each tab in the process.</li>
   <li>Once the single or multiple analysis is completed, users can analysis as per their need, there is no steps involved further</li>
@@ -2071,7 +2071,7 @@ tabPanel(
 <ul>
   <li><strong>H5 File:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE230207'>GSE230207</a></li>
   <li><strong>Matrix Files:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE244014'>GSE244014</a></li>
-  <li><strong>Example data to test the tool (C2_vs_P2) from :</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?GSE230207'>GSE230207</a></li>
+  <li><strong>Example data to test the tool (TME_cold_vs_TME_hot_vs_TME_IME_vs_TME_IMS) from :</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?GSE230207'>GSE230207</a></li>
 </ul>
 
 <hr>
@@ -2244,7 +2244,7 @@ tabPanel(
      </ul>
     <li><strong>GPTCelltype:</strong></li>
       <ul>
-         <li>GPT Models: Utilizes various GPT models, including: GPT-4, GPT-4-turbo, GPT-4o-mini, GPT-4o, ChatGPT-4o-latest, GPT-3.5-turbo, GPT-3.5-turbo.</li>
+         <li>GPT Models: Utilizes various GPT models, including: gpt-4.5-preview, GPT-4, GPT-4-turbo, GPT-4o-mini, GPT-4o, ChatGPT-4o-latest, GPT-3.5-turbo, GPT-3.5-turbo.</li>
          <li>Gene Requirements: Requires a minimum number of top genes for accurate prediction.</li>
          <li>Availability: Available via the web platform. To use it locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file.</li>
       </ul>
@@ -2283,7 +2283,7 @@ tabPanel(
     </li>
     <li><strong>Plot Types:</strong>
 		<ul>
-    <li>Multiple visualization formats are available, including Spatail Plot, Dot Plot, Violin Plot, Ridge Plot, and Feature Plot. For Dot Plot, Violin Plot, and Ridge Plot, users can adjust parameters to visualize the plots for either all Seurat clusters or selected specific clusters.</li>
+    <li>Multiple visualization formats are available, including Spatial Plot, Dot Plot, Violin Plot, Ridge Plot, and Feature Plot. For Dot Plot, Violin Plot, and Ridge Plot, users can adjust parameters to visualize the plots for either all Seurat clusters or selected specific clusters.</li>
 		</ul>
   </li>
 <li><strong>Grouping and Splitting:</strong>
@@ -2299,7 +2299,7 @@ tabPanel(
 </li>
     <li><strong>Output:</strong>
 	<ul>
-	<li>Plot: The user receives one of the chosen plot formats ( Spatail Plot, violin plot, dot plot, feature plot or ridge plot) <strong>(Fig. 1.7b-f)</strong>.</li>
+	<li>Plot: The user receives one of the chosen plot formats ( Spatial Plot, violin plot, dot plot, feature plot or ridge plot) <strong>(Fig. 1.7b-f)</strong>.</li>
 	<li>Summary Tables: The tool generates tables showing marker gene cell counts and cell proportions, providing an additional layer of quantitative insight <strong>(Fig. 1.7g)</strong>.</li>
 	  <img src='images/1.7.jpg' width='800' height='600' alt=''/>
 		</ul>
@@ -2322,7 +2322,7 @@ tabPanel(
 	</li>
     <li><strong>Visualization Options:</strong>
 	<ul>
-	<li>Multiple formats are available, including:  Spatail Plot, Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot</li>
+	<li>Multiple formats are available, including:  Spatial Plot, Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot</li>
 	</ul>
 	</li>
     <li><strong>Grouping:</strong><ul>
@@ -2351,7 +2351,8 @@ tabPanel(
 <ul>
 <li>Users can choose one or multiple clusters for subclustering.</li>
 <li>Clusters can be selected based on Seurat clusters or previously predicted annotation labels.</li>
-<li>Users can select genes of interest to extract cells for reclustering; for example, MEF2B or multiple genes like MEF2B,POLD2. When specifying multiple genes, separate each gene name with a comma.</li>
+<li>Users can select genes of interest to extract cells for reclustering (positive selection); for example, FCN1 or multiple genes like FCN1,PSAP. When specifying multiple genes, separate each gene name with a comma.</li>
+<li>Exclude genes expressed in cells and perform the analysis using the remaining cells (negative selection); for example, FCN1 or multiple genes like FCN1,PSAP. When specifying multiple genes, separate each gene name with a comma.</li>
 <img src='images/2.1.jpg' width='400' height='250' alt=''/>
 </ul>
 	
@@ -2464,7 +2465,7 @@ The GO Term analysis provides:
 </ul>
 </li>
 </ul>
-This GO term analysis feature in VST-DAVis provides users with an accessible, visually informative, and comprehensive view of gene functionality across clusters and conditions, enabling enhanced biological interpretation of scRNA-seq data.
+This GO term analysis feature in VST-DAVis provides users with an accessible, visually informative, and comprehensive view of gene functionality across clusters and conditions, enabling enhanced biological interpretation of VST-DAVis data.
 <hr>
 <h3>5. Pathway Analysis</h3>
 VST-DAVis offers pathway analysis through KEGG and Reactome databases using the clusterProfiler and ReactomePA packages. Users can gain insights into biological pathways associated with specific gene expression profiles from single, multiple, or subcluster analyses.
@@ -2514,7 +2515,7 @@ Pathway analysis results include:
 </ul>
 </li>
 </ul>
-The pathway analysis functionality in VST-DAVis helps users understand the biological processes and signaling pathways linked to gene expression profiles across clusters and conditions, providing a deep functional understanding of their ScRNA-seq data.
+The pathway analysis functionality in VST-DAVis helps users understand the biological processes and signaling pathways linked to gene expression profiles across clusters and conditions, providing a deep functional understanding of their VST-DAVis data.
 <hr>
 <h3>6. GSEA Analysis</h3>
 The Gene Set Enrichment Analysis (GSEA) feature in VST-DAVis leverages the fgsea package to identify enriched pathways using ranked gene lists, such as those generated from differential expression analysis. This allows users to assess pathway-level expression changes and gain insights into functional changes across clusters or conditions.
@@ -2579,7 +2580,7 @@ The GSEA analysis provides:
 </ul>
 </li>
 </ul>
-GSEA analysis in VST-DAVis offers a powerful method for understanding pathway-level dynamics, supporting biological interpretation of ScRNA-seq data through visual and quantitative assessments of enriched pathways.
+GSEA analysis in VST-DAVis offers a powerful method for understanding pathway-level dynamics, supporting biological interpretation of VST-DAVis data through visual and quantitative assessments of enriched pathways.
 <hr>
 <h3>7. Cell-Cell Communication Analysis</h3>	
 VST-DAVis integrates CellChat to enable users to analyze cell-cell communication within single or multiple samples, as well as for subclusters. This analysis identifies potential ligand-receptor interactions, allowing users to explore how different cell types or clusters communicate based on gene expression patterns.
@@ -2658,7 +2659,7 @@ For a more focused analysis, users can select a specific signaling pathway from 
 </ul>
 </li>
 </ul>
-This suite of tools and visualizations enables detailed exploration of cell communication, allowing users to interpret inter-cellular signaling dynamics in ScRNA-seq datasets with biological relevance.
+This suite of tools and visualizations enables detailed exploration of cell communication, allowing users to interpret inter-cellular signaling dynamics in VST-DAVis datasets with biological relevance.
 <hr>
 <h3>8. Trajectory and Pseudotime Analysis</h3>	
 VST-DAVis integrates Monocle3 for trajectory and pseudotime analysis, allowing users to study the dynamic progression of cells over pseudotime and identify genes with functional changes along this trajectory.
@@ -2752,7 +2753,7 @@ This functionality helps users analyze and visualize gene dynamics, offering ins
 <hr>
 <h3> 9. Co-Expression and TF Analysis</h3>
 <h3>9.1. Co-Expression Network Analysis</h3>
-VST-DAVis incorporates co-expression network analysis for ScRNA-seq data using the hdWGCNA package. This feature enables users to identify gene modules and their relationships in Seurat clusters or predicted cell type labels. 
+VST-DAVis incorporates co-expression network analysis for VST-DAVis data using the hdWGCNA package. This feature enables users to identify gene modules and their relationships in Seurat clusters or predicted cell type labels. 
 <ul>
 <li><strong>Prerequisites:</strong>
 <ul>
@@ -2814,7 +2815,7 @@ Few plots were not available in image files format so we have provided those as 
 </ul>
 This functionality provides a robust framework for uncovering intricate co-expression patterns and identifying key drivers in single-cell datasets.<br>
 <h3>9.2. Transcription Factor Regulatory Network Analysis</h3>
-Transcription Factor (TF) Regulatory Network Analysis in VST-DAVis employs the hdWGCNA package to construct and analyze  TF regulatory networks based on ScRNA-seq data. This feature allows users to identify gene modules and investigate TF-mediated regulation within clusters or predicted cell type labels.
+Transcription Factor (TF) Regulatory Network Analysis in VST-DAVis employs the hdWGCNA package to construct and analyze  TF regulatory networks based on VST-DAVis data. This feature allows users to identify gene modules and investigate TF-mediated regulation within clusters or predicted cell type labels.
 <ul>
 <li><strong>Prerequisites:</strong>
 <ul>
@@ -2881,7 +2882,7 @@ Unravel regulatory mechanisms governing gene expression in cellular contexts. Id
 </ul>
 </li>
 </ul>
-This functionality provides a comprehensive view of transcriptional regulation in ScRNA-seq data, enabling detailed exploration of TF-driven cellular processes.
+This functionality provides a comprehensive view of transcriptional regulation in VST-DAVis data, enabling detailed exploration of TF-driven cellular processes.
 
 	
 <hr>
