@@ -81,7 +81,7 @@ datainput_multiple_clusterbased <- function(index_multiple_clusterbased_input, i
 	  plots43 <- SpatialFeaturePlot(multiple_sample_clustering, features = top_markers_plot, ncol = length(unique(multiple_sample_clustering$orig.ident)))+ theme(legend.position = 'right')
     }
 	else if(index_m_clusterbased4 == "seurat_clusters" & index_m_clusterbased3 == "VlnPlot") {
-      plots43 <- VlnPlot(multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_clusterbased4, split.by = index_m_clusterbased5)+ theme(legend.position = 'right')
+      plots43 <- VlnPlot(multiple_sample_clustering, idents=index_m_clusterbased6, features = top_markers_plot, ncol = 5, group.by = index_m_clusterbased4, split.by = index_m_clusterbased5)+ theme(legend.position = 'right')
     }
     else if(index_m_clusterbased4 == "seurat_clusters" & index_m_clusterbased3 == "FeaturePlot") {
       Idents(multiple_sample_clustering) <- index_m_clusterbased4
