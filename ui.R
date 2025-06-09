@@ -79,7 +79,7 @@ shinyUI(
         <h3> use VST-DAVis online</h3>
         <p>VST-DAVis is deployed at: <a href='https://www.gudalab-rtools.net/VST-DAVis'>https://www.gudalab-rtools.net/VST-DAVis</a></p>
         <hr>
-        <h3> Launch VST-DAVis using R and GitHub: </h3>
+        <h3> Launch VST-DAVis using R and GitHub </h3>
         <p> VST-DAVis were deposited under the GitHub repository: <a href='https://github.com/GudaLab/VST-DAVis'>https://github.com/GudaLab/VST-DAVis</a></p>
         <ul>
         <li>R (>= 4.4.3)</li>
@@ -102,6 +102,9 @@ Alternatively, download the source code from GitHub and run the following comman
 library(shiny)
 runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
 <hr>
+<h3>Usage</h3>
+    <p>Please refer our Manual tab.</p>
+        <hr>
 <h3> Developed and maintained by</h3>
 <p>VST-DAVis was developed by Sankarasubramanian Jagadesan and Babu Guda. We share a passion for developing a user-friendly tool for biologists, particularly those who do not have access to bioinformaticians or programming expertise.
 </p>
