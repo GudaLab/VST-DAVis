@@ -138,7 +138,7 @@ These datasets are ideal for:
 - Familiarizing users with the tool's analysis workflow.
 - Testing the application in different input formats.
 
-Users can download these datasets directly from the provided links and use them to explore VST-DAVis. The dataset downloaded from NCBI, the file structure and naming convention did not match the expected Space Ranger output format, which is required by our application
+Users can download these datasets directly from the provided links and use them to explore VST-DAVis. Users who download sample files from NCBI or other public repositories need to rename and organize their files to match the Space Ranger output format, which is required by our application.
 
 So We have also included example datasets in both supported formats to guide users:
 - H5 + Spatial folder format [P1_ON1_A.zip](https://github.com/GudaLab/VST-DAVis/blob/main/www/example_files/P1_ON1_A.zip)
