@@ -1,19 +1,28 @@
-datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple_sample_file1, index_multiple_sample_file_names, index_multiple_sample_format, index_multiple_sample_name){
+datainput_multiple_sample <- function(index_multiple_sample_file,
+                                      index_multiple_sample_file1,
+                                      index_multiple_sample_file_names,
+                                      index_multiple_sample_format,
+                                      index_multiple_sample_name) {
   index_multiple_sample_format <- as.character(index_multiple_sample_format)
-  # Capture original path and ensure it's reset on exit
+  
+  # Save and restore working directory
   original_path <- getwd()
   on.exit(setwd(original_path), add = TRUE)
   
+  library(Seurat)
+  
+  # Initialize output vars
+  spatial_objects <- NULL
+  path <- getwd()
+  
   if (index_multiple_sample_format == "h5") {
-    data_dirs <- sub('\\.zip$', '', basename(index_multiple_sample_file_names))
-    #Create a list of count matrices
-    path <- getwd()
-    setwd(index_multiple_sample_file1)
-    # Unzip all files
-    lapply(index_multiple_sample_file_names, unzip)
+    # Set working directory
+    if (!is.null(index_multiple_sample_file1) && is.character(index_multiple_sample_file1)) {
+      setwd(index_multiple_sample_file1)
+    }
     
-    # Load10X_Spatial function applied to each dataset
-    library(Seurat)
+    data_dirs <- sub('\\.zip$', '', basename(index_multiple_sample_file_names))
+    lapply(index_multiple_sample_file_names, unzip)
     
     load_spatial_data <- function(data_dir) {
       obj <- Load10X_Spatial(
@@ -23,52 +32,26 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
         filter.matrix = TRUE,
         slice = data_dir
       )
-      
       obj@project.name <- data_dir
       obj$orig.ident <- data_dir
       Idents(obj) <- 'orig.ident'
-      
-      # Extract count matrix from Spatial
-      counts_matrix <- obj@assays$Spatial$counts
-      
-      # Create an RNA assay from Spatial counts
-      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-      
-      # Set RNA as the default assay for analysis
+      obj[["RNA"]] <- CreateAssayObject(counts = obj@assays$Spatial$counts)
       DefaultAssay(obj) <- "RNA"
-      
       return(obj)
     }
     
-    # Apply function to all extracted datasets
-    spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
-    
-    # Display table of cell identities for each object
-    lapply(spatial_objects, function(obj) table(obj$orig.ident))
-    
-    merged_spatial <- merge(spatial_objects[[1]], y = spatial_objects[-1], add.cell.ids = names(spatial_objects),project="merged")
-    merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
-    
-    # Print basic information about the merged object
-    Idents(merged_spatial) <- merged_spatial@meta.data$orig.ident
-    table1 <- table(merged_spatial$orig.ident) %>% as.data.frame 
-    colnames(table1) <- c("Sample names", "Cell counts")
-    multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
-    setwd(path)
+    try({
+      spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
+    }, silent = TRUE)
   }
   
-  else if (index_multiple_sample_format == "MFB"){
-    #index_multiple_sample_file1 <- list.files(pattern="*.gz")
-    #files <- list.files(path = index_multiple_sample_file, pattern = "\\.zip$", full.names = TRUE)
-    data_dirs <- sub('\\.zip$', '', basename(index_multiple_sample_file_names))
-    #Create a list of count matrices
-    path <- getwd()
-    setwd(index_multiple_sample_file1)
-    # Unzip all files
-    lapply(index_multiple_sample_file_names, unzip)
+  else if (index_multiple_sample_format == "MFB") {
+    if (!is.null(index_multiple_sample_file1) && is.character(index_multiple_sample_file1)) {
+      setwd(index_multiple_sample_file1)
+    }
     
-    # Load necessary library
-    library(Seurat)
+    data_dirs <- sub('\\.zip$', '', basename(index_multiple_sample_file_names))
+    lapply(index_multiple_sample_file_names, unzip)
     
     load_spatial_data <- function(data_dir) {
       matrix_dir <- file.path(data_dir, "filtered_feature_bc_matrix")
@@ -83,51 +66,24 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
       if (file.exists(spatial_dir)) {
         obj[[data_dir]] <- Read10X_Image(spatial_dir, assay = "Spatial", filter.matrix = TRUE, slice = data_dir)
       }
-      # Extract count matrix from Spatial
-      counts_matrix <- obj@assays$Spatial$counts
       
-      # Create an RNA assay from Spatial counts
-      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-      
-      # Set RNA as the default assay for analysis
+      obj[["RNA"]] <- CreateAssayObject(counts = obj@assays$Spatial$counts)
       DefaultAssay(obj) <- "RNA"
-      
       return(obj)
     }
     
-    # Apply function to all extracted datasets
-    spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
-    
-    # Display table of cell identities for each object
-    lapply(spatial_objects, function(obj) table(obj$orig.ident))
-    
-    merged_spatial <- merge(spatial_objects[[1]], y = spatial_objects[-1], add.cell.ids = names(spatial_objects), project="merged")
-    merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
-    
-    # Print basic information about the merged object
-    Idents(merged_spatial) <- merged_spatial@meta.data$orig.ident
-    table1 <- table(merged_spatial$orig.ident) %>% as.data.frame 
-    colnames(table1) <- c("Sample names", "Cell counts")
-    multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
-    setwd(path)
-    
+    try({
+      spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
+    }, silent = TRUE)
   }
   
-  else if (index_multiple_sample_format == "exampledata")
-  {
-    path <- getwd()
+  else if (index_multiple_sample_format == "exampledata") {
     index_multiple_sample_file1 <- "www/example_data/GSE230207"
-    index_multiple_sample_file_names <- "Example data to test the tool (GSE230207)"
-    files <- list.files(path = index_multiple_sample_file1, pattern = "\\.zip$", full.names = TRUE)
+    setwd(index_multiple_sample_file1)
     
-    # Extract file names without .zip extension
+    files <- list.files(pattern = "\\.zip$", full.names = TRUE)
     data_dirs <- sub('\\.zip$', '', basename(files))
-    
-    # Unzip all files
     lapply(files, unzip)
-    
-    # Load10X_Spatial function applied to each dataset
-    library(Seurat)
     
     load_spatial_data <- function(data_dir) {
       obj <- Load10X_Spatial(
@@ -137,40 +93,41 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
         filter.matrix = TRUE,
         slice = data_dir
       )
-      
       obj@project.name <- data_dir
       obj$orig.ident <- data_dir
       Idents(obj) <- 'orig.ident'
-      
-      # Extract count matrix from Spatial
-      counts_matrix <- obj@assays$Spatial$counts
-      
-      # Create an RNA assay from Spatial counts
-      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-      
-      # Set RNA as the default assay for analysis
+      obj[["RNA"]] <- CreateAssayObject(counts = obj@assays$Spatial$counts)
       DefaultAssay(obj) <- "RNA"
-      
       return(obj)
     }
     
-    # Apply function to all extracted datasets
-    spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
-    
-    # Display table of cell identities for each object
-    lapply(spatial_objects, function(obj) table(obj$orig.ident))
-    
-    merged_spatial <- merge(spatial_objects[[1]], y = spatial_objects[-1], add.cell.ids = names(spatial_objects),project="merged")
-    merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
-    
-    # Print basic information about the merged object
-    Idents(merged_spatial) <- merged_spatial@meta.data$orig.ident
-    table1 <- table(merged_spatial$orig.ident) %>% as.data.frame 
-    colnames(table1) <- c("Sample names", "Cell counts")
-    multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
-    setwd(path)
+    try({
+      spatial_objects <- mapply(load_spatial_data, data_dirs, SIMPLIFY = FALSE)
+    }, silent = TRUE)
   }
   
+  # --- Validate spatial_objects before proceeding ---
+  if (
+    is.null(spatial_objects) ||
+    !is.list(spatial_objects) ||
+    length(spatial_objects) == 0 ||
+    any(sapply(spatial_objects, function(x) is.null(x) || inherits(x, "try-error")))
+  ) {
+    return(list(
+      is_valid = FALSE,
+      text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly."
+    ))
+  }
+  
+  # --- Proceed with downstream processing ---
+  merged_spatial <- merge(spatial_objects[[1]], y = spatial_objects[-1],
+                          add.cell.ids = names(spatial_objects), project = "merged")
+  merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
+  Idents(merged_spatial) <- merged_spatial@meta.data$orig.ident
+  
+  table1 <- table(merged_spatial$orig.ident) %>% as.data.frame()
+  colnames(table1) <- c("Sample names", "Cell counts")
+  multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
   
   plots1 <- VlnPlot(merged_spatial, features = "nFeature_Spatial", ncol = 1)
   plots2 <- VlnPlot(merged_spatial, features = "nCount_Spatial", ncol = 1)
@@ -179,14 +136,18 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
   plots5 <- FeatureScatter(merged_spatial, feature1 = "nFeature_Spatial", feature2 = "percent.mt")
   plots6 <- FeatureScatter(merged_spatial, feature1 = "nFeature_Spatial", feature2 = "nCount_Spatial")
   
-  file_list <- list.files(index_multiple_sample_file1,recursive = TRUE)
+  file_list <- list.files(index_multiple_sample_file1, recursive = TRUE)
   unique_files <- unique(file_list)
   
-  if (length(spatial_objects) == 0 || any(sapply(spatial_objects, is.null))) {
-    return(list(text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly."))
-  }
-  else {
-  return(list(text_summary = unique_files, plot1 = plots1 + plots2 + plots3, data1 = table1,  Plot3 = plots5 + plots6,  data2 = merged_spatial, data3 = table1[,1], data4 = multiple_list, Plot2 = plots4))
-  }
+  return(list(
+    is_valid = TRUE,
+    text_summary = unique(unique_files),
+    plot1 = plots1 + plots2 + plots3,
+    Plot3 = plots5 + plots6,
+    data2 = merged_spatial,
+    data3 = table1[, 1],
+    data4 = multiple_list,
+    Plot2 = plots4,
+    data1 = table1
+  ))
 }
-

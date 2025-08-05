@@ -81,7 +81,7 @@ server <- function(input, output, session) {
   
   
   ########multiple hide qc filtering######## 
-  shinyjs::show("m_bf_box1")
+  shinyjs::show("m_bf_box0")
   shinyjs::hide("m_bf_box1")
   shinyjs::hide("m_bf_box2")
   shinyjs::hide("m_bf_box3")
@@ -90,7 +90,7 @@ server <- function(input, output, session) {
   shinyjs::hide("m_bf_box6")
   
   observeEvent(input$multiple_sample_submit,{
-    shinyjs::hide("m_bf_box0")
+    #shinyjs::hide("m_bf_box0")
     shinyjs::show("m_bf_box1")
     shinyjs::show("m_bf_box2")
     shinyjs::show("m_bf_box3")
@@ -506,34 +506,84 @@ server <- function(input, output, session) {
   
   #####################Tab1##############################
   ######################data Input##################
-  datainput_multiple_sample_level<- eventReactive(input$multiple_sample_submit,{
+  # datainput_multiple_sample_level<- eventReactive(input$multiple_sample_submit,{
+  #   
+  #   if (input$multiple_sample_format == "h5") {
+  #     file1 <- input$multiple_sample_file[['datapath']]
+  #     filesdir = dirname(file1)
+  #     
+  #     file.rename(file1, paste0(filesdir,'/',input$multiple_sample_file$name))
+  #     upload_multiple_sample_file <- filesdir
+  #     upload_multiple_sample_file_names <- input$multiple_sample_file$name
+  #     }
+  #   else if (input$multiple_sample_format == "MFB") {
+  #     
+  #     file1 <- input$multiple_sample_file_mfb[['datapath']]
+  #     filesdir = dirname(file1)
+  #     
+  #     file.rename(file1, paste0(filesdir,'/',input$multiple_sample_file_mfb$name))
+  #     upload_multiple_sample_file <- filesdir
+  #     upload_multiple_sample_file_names <- input$multiple_sample_file_mfb$name
+  #   }
+  datainput_multiple_sample_level <- eventReactive(input$multiple_sample_submit, {
     
-    if (input$multiple_sample_format == "h5") {
+    format <- input$multiple_sample_format
+    
+    if (format == "h5") {
       file1 <- input$multiple_sample_file[['datapath']]
-      filesdir = dirname(file1)
+      filesdir <- dirname(file1)
+      file.rename(file1, paste0(filesdir, '/', input$multiple_sample_file$name))
       
-      file.rename(file1, paste0(filesdir,'/',input$multiple_sample_file$name))
       upload_multiple_sample_file <- filesdir
       upload_multiple_sample_file_names <- input$multiple_sample_file$name
-      }
-    else if (input$multiple_sample_format == "MFB") {
       
+    } else if (format == "MFB") {
       file1 <- input$multiple_sample_file_mfb[['datapath']]
-      filesdir = dirname(file1)
+      filesdir <- dirname(file1)
+      file.rename(file1, paste0(filesdir, '/', input$multiple_sample_file_mfb$name))
       
-      file.rename(file1, paste0(filesdir,'/',input$multiple_sample_file_mfb$name))
       upload_multiple_sample_file <- filesdir
       upload_multiple_sample_file_names <- input$multiple_sample_file_mfb$name
+      
+    } else if (format == "exampledata") {
+      upload_multiple_sample_file <- NULL
+      upload_multiple_sample_file_names <- NULL
+      filesdir <- NULL
     }
-    
     source("scripts/multiple_file_upload.R")
     datainput_multiple_sample(index_multiple_sample_file = upload_multiple_sample_file$datapath, index_multiple_sample_file_names = upload_multiple_sample_file_names, index_multiple_sample_file1 = filesdir, index_multiple_sample_format=input$multiple_sample_format, index_multiple_sample_name = input$multiple_sample_name)
     
   })
-  
-  
+  observeEvent(datainput_multiple_sample_level(), {
+    req(datainput_multiple_sample_level())
+    
+    result <- datainput_multiple_sample_level()
+    
+    if (result$is_valid) {
+      shinyjs::hide("m_bf_box0")
+      shinyjs::show("m_bf_box1")
+      shinyjs::show("m_bf_box2")
+      shinyjs::show("m_bf_box3")
+      shinyjs::show("m_bf_box4")
+      shinyjs::show("m_bf_box5")
+      shinyjs::show("m_bf_box6")
+    } else {
+      shinyjs::show("m_bf_box0")
+      shinyjs::show("m_bf_box1")
+      shinyjs::hide("m_bf_box2")
+      shinyjs::hide("m_bf_box3")
+      shinyjs::hide("m_bf_box4")
+      shinyjs::hide("m_bf_box5")
+      shinyjs::hide("m_bf_box6")
+    }
+    
+    output$text_level<- renderText({
+      paste(datainput_multiple_sample_level()[[2]])
+    })
+    
+    
   output$m_qc_before_filtering <- renderPlot({
-    datainput_multiple_sample_level()[2]
+    datainput_multiple_sample_level()[3]
   })
   ################m_QCplot############################
   observeEvent(input$download_m_qc_before_filtering, {
@@ -557,12 +607,12 @@ server <- function(input, output, session) {
       paste("QC_before_filtering", input$multiple_sample_name, input$m_qc_before_filtering_plot_type, sep="")
     },
     content = function(file){
-      ggsave(file,plot = datainput_multiple_sample_level()[[2]], width = input$m_qc_before_filtering_plot_width, height = input$m_qc_before_filtering_plot_height, dpi = input$m_qc_before_filtering_plot_dpi, units = "in")
+      ggsave(file,plot = datainput_multiple_sample_level()[[3]], width = input$m_qc_before_filtering_plot_width, height = input$m_qc_before_filtering_plot_height, dpi = input$m_qc_before_filtering_plot_dpi, units = "in")
     }
   )
   
   
-  output$multiple_cell_table<- renderDataTable(DT::datatable((datainput_multiple_sample_level()[[3]]),
+  output$multiple_cell_table<- renderDataTable(DT::datatable((datainput_multiple_sample_level()[[9]]),
                                                              options = list(
                                                                scrollX = TRUE,
                                                                pageLength = 10,
@@ -573,7 +623,7 @@ server <- function(input, output, session) {
     filename = function() { 
       paste("Number of cells", '.csv', sep='') },
     content = function(file){
-      write.csv(datainput_multiple_sample_level()[[3]], file)
+      write.csv(datainput_multiple_sample_level()[[9]], file)
     }
   )
   
@@ -639,10 +689,7 @@ server <- function(input, output, session) {
   )
   
   
-  output$text_level<- renderText({
-    paste(datainput_multiple_sample_level()[[1]])
-  })
-  
+
   
   
   output$m_so_before_filtering<- downloadHandler(
@@ -653,7 +700,7 @@ server <- function(input, output, session) {
       saveRDS(datainput_multiple_sample_level()[[5]], file= file, compress = TRUE)
     }
   )
-  
+  })
   ###############link to next tab###########################      
   observeEvent(input$link_m_qc_filtering, {
     newvalue <- "Sample Groups and QC Filtering"

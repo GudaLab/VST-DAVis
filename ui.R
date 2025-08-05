@@ -139,6 +139,11 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
        
        tabPanel(
          "Stats",
+        
+         box(id = "m_bf_box1", width = 12,
+         h3("Sample names of uploaded file(s)"),
+         verbatimTextOutput("text_level"),
+         ),
          box(id = "m_bf_box0", width = 12,
              h3("Instructions for Uploading Sample Files"),
              
@@ -177,10 +182,6 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br()
-            ),
-         box(id = "m_bf_box1", width = 12,
-         h3("Sample names of uploaded file(s)"),
-         verbatimTextOutput("text_level"),
          ),
          fluidRow(
            box(id = "m_bf_box2", width = 10,
