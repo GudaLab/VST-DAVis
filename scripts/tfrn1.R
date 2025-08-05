@@ -5,14 +5,8 @@ datainput_single_multiple_sample_tfrn1<- function(index_multiple_sample_tfrn1_in
 
   single_multiple_sample_clustering <- index_multiple_sample_tfrn1_input
   
-    #pfm_core <- TFBSTools::getMatrixSet(x = JASPAR2020, opts = list(collection = "CORE", tax_group = 'vertebrates', all_versions = FALSE))
+  pfm_core <- TFBSTools::getMatrixSet(x = JASPAR2020, opts = list(collection = "CORE", tax_group = 'vertebrates', all_versions = FALSE))
   
-  
-  JASPAR2024 <- JASPAR2024()
-  sq24 <- RSQLite::dbConnect(RSQLite::SQLite(), db(JASPAR2024))
-
-  pfm_core <- TFBSTools::getMatrixSet(x = sq24,  opts = list(collection = "CORE", tax_group = 'vertebrates', all_versions = FALSE))
-
   #Construct TF Regulatory Network
   # run the motif scan
   if (index_s_tfrn1 == "EnsDb.Hsapiens.v86"){
@@ -42,7 +36,7 @@ datainput_single_multiple_sample_tfrn1<- function(index_multiple_sample_tfrn1_in
   
   
   # define model params:
-  model_params <- list(objective = 'reg:squarederror',  max_depth = index_s_tfrn2,  eta = index_s_tfrn3,  nthread=16,  alpha=index_s_tfrn4)
+  model_params <- list(objective = 'reg:squarederror',  max_depth = index_s_tfrn2,  eta = index_s_tfrn3,  nthread=64,  alpha=index_s_tfrn4)
   
   # construct the TF network
   single_multiple_sample_clustering <- ConstructTFNetwork(single_multiple_sample_clustering, model_params)

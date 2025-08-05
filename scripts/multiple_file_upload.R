@@ -1,5 +1,8 @@
 datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple_sample_file1, index_multiple_sample_file_names, index_multiple_sample_format, index_multiple_sample_name){
   index_multiple_sample_format <- as.character(index_multiple_sample_format)
+  # Capture original path and ensure it's reset on exit
+  original_path <- getwd()
+  on.exit(setwd(original_path), add = TRUE)
   
   if (index_multiple_sample_format == "h5") {
     data_dirs <- sub('\\.zip$', '', basename(index_multiple_sample_file_names))
@@ -25,15 +28,15 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
       obj$orig.ident <- data_dir
       Idents(obj) <- 'orig.ident'
       
-	  # Extract count matrix from Spatial
-  counts_matrix <- obj@assays$Spatial$counts
-  
-  # Create an RNA assay from Spatial counts
-  obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-  
-  # Set RNA as the default assay for analysis
-  DefaultAssay(obj) <- "RNA"
-  
+      # Extract count matrix from Spatial
+      counts_matrix <- obj@assays$Spatial$counts
+      
+      # Create an RNA assay from Spatial counts
+      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
+      
+      # Set RNA as the default assay for analysis
+      DefaultAssay(obj) <- "RNA"
+      
       return(obj)
     }
     
@@ -81,14 +84,14 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
         obj[[data_dir]] <- Read10X_Image(spatial_dir, assay = "Spatial", filter.matrix = TRUE, slice = data_dir)
       }
       # Extract count matrix from Spatial
-  counts_matrix <- obj@assays$Spatial$counts
-  
-  # Create an RNA assay from Spatial counts
-  obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-  
-  # Set RNA as the default assay for analysis
-  DefaultAssay(obj) <- "RNA"
-	  
+      counts_matrix <- obj@assays$Spatial$counts
+      
+      # Create an RNA assay from Spatial counts
+      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
+      
+      # Set RNA as the default assay for analysis
+      DefaultAssay(obj) <- "RNA"
+      
       return(obj)
     }
     
@@ -107,11 +110,12 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
     colnames(table1) <- c("Sample names", "Cell counts")
     multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
     setwd(path)
-
+    
   }
- 
+  
   else if (index_multiple_sample_format == "exampledata")
   {
+    path <- getwd()
     index_multiple_sample_file1 <- "www/example_data/GSE230207"
     index_multiple_sample_file_names <- "Example data to test the tool (GSE230207)"
     files <- list.files(path = index_multiple_sample_file1, pattern = "\\.zip$", full.names = TRUE)
@@ -138,15 +142,15 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
       obj$orig.ident <- data_dir
       Idents(obj) <- 'orig.ident'
       
-	  # Extract count matrix from Spatial
-  counts_matrix <- obj@assays$Spatial$counts
-  
-  # Create an RNA assay from Spatial counts
-  obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
-  
-  # Set RNA as the default assay for analysis
-  DefaultAssay(obj) <- "RNA"
-  
+      # Extract count matrix from Spatial
+      counts_matrix <- obj@assays$Spatial$counts
+      
+      # Create an RNA assay from Spatial counts
+      obj[["RNA"]] <- CreateAssayObject(counts = counts_matrix)
+      
+      # Set RNA as the default assay for analysis
+      DefaultAssay(obj) <- "RNA"
+      
       return(obj)
     }
     
@@ -164,7 +168,7 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
     table1 <- table(merged_spatial$orig.ident) %>% as.data.frame 
     colnames(table1) <- c("Sample names", "Cell counts")
     multiple_list <- SplitObject(merged_spatial, split.by = "orig.ident")
-    
+    setwd(path)
   }
   
   
@@ -178,6 +182,10 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
   file_list <- list.files(index_multiple_sample_file1,recursive = TRUE)
   unique_files <- unique(file_list)
   
-  return(list(plot1 = plots1 + plots2 + plots3, data1 = table1,  Plot3 = plots5 + plots6, text_summary = unique_files, data2 = merged_spatial, data3 = table1[,1], data4 = multiple_list, Plot2 = plots4))
+  if (length(spatial_objects) == 0 || any(sapply(spatial_objects, is.null))) {
+    return(list(text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly."))
+  }
+  
+  return(list(text_summary = unique_files, plot1 = plots1 + plots2 + plots3, data1 = table1,  Plot3 = plots5 + plots6,  data2 = merged_spatial, data3 = table1[,1], data4 = multiple_list, Plot2 = plots4))
 }
 

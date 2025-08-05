@@ -1,4 +1,4 @@
-source("global.R")
+#source("global.R")
 server <- function(input, output, session) {
   
  
@@ -533,7 +533,7 @@ server <- function(input, output, session) {
   
   
   output$m_qc_before_filtering <- renderPlot({
-    datainput_multiple_sample_level()[1]
+    datainput_multiple_sample_level()[2]
   })
   ################m_QCplot############################
   observeEvent(input$download_m_qc_before_filtering, {
@@ -557,12 +557,12 @@ server <- function(input, output, session) {
       paste("QC_before_filtering", input$multiple_sample_name, input$m_qc_before_filtering_plot_type, sep="")
     },
     content = function(file){
-      ggsave(file,plot = datainput_multiple_sample_level()[[1]], width = input$m_qc_before_filtering_plot_width, height = input$m_qc_before_filtering_plot_height, dpi = input$m_qc_before_filtering_plot_dpi, units = "in")
+      ggsave(file,plot = datainput_multiple_sample_level()[[2]], width = input$m_qc_before_filtering_plot_width, height = input$m_qc_before_filtering_plot_height, dpi = input$m_qc_before_filtering_plot_dpi, units = "in")
     }
   )
   
   
-  output$multiple_cell_table<- renderDataTable(DT::datatable((datainput_multiple_sample_level()[[2]]),
+  output$multiple_cell_table<- renderDataTable(DT::datatable((datainput_multiple_sample_level()[[3]]),
                                                              options = list(
                                                                scrollX = TRUE,
                                                                pageLength = 10,
@@ -573,7 +573,7 @@ server <- function(input, output, session) {
     filename = function() { 
       paste("Number of cells", '.csv', sep='') },
     content = function(file){
-      write.csv(datainput_multiple_sample_level()[[2]], file)
+      write.csv(datainput_multiple_sample_level()[[3]], file)
     }
   )
   
@@ -609,7 +609,7 @@ server <- function(input, output, session) {
   )
   
   output$m_ff_before_filtering <- renderPlot({
-    datainput_multiple_sample_level()[3]
+    datainput_multiple_sample_level()[4]
   })
   
   #######################m_ff_plot#########################
@@ -634,13 +634,13 @@ server <- function(input, output, session) {
       paste("feature_feature_relationships_plot", input$multiple_sample_name, input$m_ff_before_filtering_plot_type, sep="")
     },
     content = function(file){
-      ggsave(file,plot = datainput_multiple_sample_level()[[3]], width = input$m_ff_before_filtering_plot_width, height = input$m_ff_before_filtering_plot_height, dpi = input$m_ff_before_filtering_plot_dpi, units = "in")
+      ggsave(file,plot = datainput_multiple_sample_level()[[4]], width = input$m_ff_before_filtering_plot_width, height = input$m_ff_before_filtering_plot_height, dpi = input$m_ff_before_filtering_plot_dpi, units = "in")
     }
   )
   
   
   output$text_level<- renderText({
-    paste(datainput_multiple_sample_level()[[4]])
+    paste(datainput_multiple_sample_level()[[1]])
   })
   
   
