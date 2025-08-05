@@ -185,7 +185,8 @@ datainput_multiple_sample <- function(index_multiple_sample_file, index_multiple
   if (length(spatial_objects) == 0 || any(sapply(spatial_objects, is.null))) {
     return(list(text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly."))
   }
-  
+  else {
   return(list(text_summary = unique_files, plot1 = plots1 + plots2 + plots3, data1 = table1,  Plot3 = plots5 + plots6,  data2 = merged_spatial, data3 = table1[,1], data4 = multiple_list, Plot2 = plots4))
+  }
 }
 
