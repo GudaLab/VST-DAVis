@@ -115,7 +115,7 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
   ) {
     return(list(
       is_valid = FALSE,
-      text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly."
+      text_summary = "❗ Please check your input file and refer to our example data format to ensure it is prepared correctly.❗"
     ))
   }
   
