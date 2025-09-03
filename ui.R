@@ -665,7 +665,7 @@ tabPanel(
   ),  
   fluidRow(   
     box(id = "m_celltype_box4",                      
-        column(6, selectInput("m_celltype5", label = "Select model", choices = c("gpt-4.5-preview" = "gpt-4.5-preview", "gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-4")),  
+        column(6, selectInput("m_celltype5", label = "Select model", choices = c("gpt-5" = "gpt-5","gpt-5-mini" = "gpt-5-mini","gpt-5-nano" = "gpt-5-nano","gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-5")),  
         column(6, numericInput("m_celltype6", label = "Top gene numbers to predict cell type",  min = 1, max = 25, value = 10)),  
     ),
   ),
@@ -1230,7 +1230,7 @@ tabPanel(
                   ),  
                   fluidRow(   
                     box(id = "m_subclustering_celltype_box4",                      
-                        column(6, selectInput("m_subclustering_celltype5", label = "Select model", choices = c("gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-4")),  
+                        column(6, selectInput("m_subclustering_celltype5", label = "Select model", choices = c("gpt-5" = "gpt-5","gpt-5-mini" = "gpt-5-mini","gpt-5-nano" = "gpt-5-nano","gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-5")),  
                         column(6, numericInput("m_subclustering_celltype6", label = "Top gene numbers to predict cell type",  min = 1, max = 25, value = 10)),  
                     ),
                   ),
@@ -2283,7 +2283,7 @@ tabPanel(
      </ul>
     <li><strong>GPTCelltype:</strong></li>
       <ul>
-         <li>GPT Models: Utilizes various GPT models, including: gpt-4.5-preview, GPT-4, GPT-4-turbo, GPT-4o-mini, GPT-4o, ChatGPT-4o-latest, GPT-3.5-turbo, GPT-3.5-turbo.</li>
+         <li>GPT Models: Utilizes various GPT models, including: GPT-5, GPT-5-mini, GPT-5-nano, GPT-4, GPT-4-turbo, GPT-4o-mini, GPT-4o, ChatGPT-4o-latest, GPT-3.5-turbo, GPT-3.5-turbo.</li>
          <li>Gene Requirements: Requires a minimum number of top genes for accurate prediction.</li>
          <li>Availability: Available via the web platform. To use it locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file.</li>
       </ul>
