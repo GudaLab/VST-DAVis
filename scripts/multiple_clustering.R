@@ -1,6 +1,7 @@
 datainput_multiple_clustering <- function(index_multiple_clustering_input, index_multiple_sample_normalization_method, index_m_clustering1, index_m_clustering2, index_m_clustering3, index_m_clustering4, index_m_clustering5, index_m_clustering6, index_m_clustering7, index_m_clustering8, index_m_clustering9, index_m_clustering10, index_m_clustering11, index_m_clustering12){
   index_m_clustering5 <- as.numeric(index_m_clustering5)
-    
+  label_size <- ifelse(as.logical(index_m_clustering10) | as.logical(index_m_clustering12), 3.5, 0)
+  
     multiple_sample_clustering<- FindNeighbors(index_multiple_clustering_input, dims = 1:index_m_clustering1 , k.param = index_m_clustering2, n.trees = index_m_clustering3)
     multiple_sample_clustering<- FindClusters(multiple_sample_clustering, resolution = index_m_clustering4, algorithm = index_m_clustering5)
     if (index_m_clustering6 == "umap")
@@ -35,7 +36,7 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
     
     plots19 <- ggplot(multiple_sample_clustering@meta.data, aes(seurat_clusters, fill = seurat_clusters)) +
       geom_bar(stat="count", position = position_dodge())+
-      geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.5, position = position_dodge(0.9), size=3.5)+
+      geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.5, position = position_dodge(0.9), size=label_size)+
       theme(panel.background = element_blank(), panel.border=element_rect(fill=NA),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),strip.background=element_blank(), plot.margin=unit(c(1,1,1,1),"line")) +
       theme(axis.text.x=element_blank())+ guides(fill=guide_legend(title="Cell count"))+
       theme(axis.text.x = element_text(angle = 90, vjust = 1))
@@ -46,7 +47,7 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
     
     plots20 <- ggplot(multiple_sample_clustering@meta.data, aes(seurat_clusters, fill = condition)) +
       geom_bar(stat="count")+
-      geom_text(stat='count', aes(label=after_stat(count)), position = position_stack(vjust = 0.5), size=3.5)+
+      geom_text(stat='count', aes(label=after_stat(count)), position = position_stack(vjust = 0.5), size=label_size)+
       theme(panel.background = element_blank(), panel.border=element_rect(fill=NA),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),strip.background=element_blank(), plot.margin=unit(c(1,1,1,1),"line")) +
       theme(axis.text.x=element_blank())+ guides(fill=guide_legend(title="Condition"))+
       theme(axis.text.x = element_text(angle = 90, vjust = 1))
@@ -58,7 +59,7 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
     
     plots21 <- ggplot(multiple_sample_clustering@meta.data, aes(seurat_clusters, fill = orig.ident)) +
       geom_bar(stat="count")+
-      geom_text(stat='count', aes(label=after_stat(count)), position = position_stack(vjust = 0.5), size=3.5)+
+      geom_text(stat='count', aes(label=after_stat(count)), position = position_stack(vjust = 0.5), size=label_size)+
       theme(panel.background = element_blank(), panel.border=element_rect(fill=NA),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),strip.background=element_blank(), plot.margin=unit(c(1,1,1,1),"line")) +
       theme(axis.text.x=element_blank())+ guides(fill=guide_legend(title="Clusters"))+
       theme(axis.text.x = element_text(angle = 90, vjust = 1))
