@@ -124,6 +124,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
 
  sidebarLayout(
    sidebarPanel(id="multiple_sidebar",
+     actionButton("info_btn1", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "File upload and Stats"),
      selectInput("multiple_sample_format", label = "Select Input format", choices = list("SpaceRanger h5 format and spatial image files" = "h5", "SpaceRanger Matrix, Feauture, Barcodes and spatial image files" ="MFB", "Example data to test the tool (GSE230207)"="exampledata" ), selected = "h5"),
      
      h5("Upload multiple samples, each in its own ZIP file"),
@@ -228,6 +229,8 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
 #####################multiple_samples QC_after filtering##########################       
 tabPanel(
   "Sample Groups and QC Filtering",
+  actionButton("info_btn2", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Sample Groups and QC Filtering"),
+  
   selectInput("multiple_group_count", label="Select number of sample group(s)", multiple = F, choices = c("1"=1, "2" = 2, "3"=3, "4" = "4",  "5" = 5, "6" = "6" ), selected = 1),
   fluidRow(
     column(width =2, textInput("group1_name",label ="Type Group1 name", value = "Group1", width = NULL, placeholder = NULL)),
@@ -255,7 +258,7 @@ tabPanel(
     
     
     column(width =3, numericInput("multiple_sample_min_count", label = "Keep the minimum number of nFeature Spatial", value = 0)),
-    column(width =3, numericInput("multiple_sample_max_count", label = "Keep the maximum number of nFeature Spatial", value = 10000)),
+    column(width =3, numericInput("multiple_sample_max_count", label = "Keep the maximum number of nFeature Spatial", value = 7500)),
     column(width =3, numericInput("multiple_sample_max_mito_perc", label="Filter cells that have more than this percentage mitochondrial counts",  value = 5)),
     br(),
     br(),
@@ -348,7 +351,9 @@ tabPanel(
 #############################multiple_Normalization and PCA analysis#########################
 tabPanel(
   "Normalization and PCA Analysis",
+  actionButton("info_btn3", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Normalization and PCA Analysis"),
   fluidRow(
+    
     column(width =4, selectInput("multiple_sample_normalization_method", label = "Normalization method", choices = c("LogNormalize"="LogNormalize", "SCTransform"="SCTransform"), selected = "SCTransform")),
     column(width =4, selectInput("multiple_sample_normalization_method1", label = "Integration method", choices = c("CCAIntegration" = "cca", "RPCAIntegration" = "rpca"), selected = "cca")),
   ),
@@ -410,6 +415,7 @@ tabPanel(
 tabPanel(
   "Clustering",
   fluidRow(
+    actionButton("info_btn4", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Clustering"),
     h3("Nearest-neighbour graph construction"),
     column(4, numericInput("m_clustering1", label = "Number of dimensions", min = 0, max = 100, value = 30, step = 1)),
     column(4, numericInput("m_clustering2", label = "k.param", value = 20, step = 1)),
@@ -578,6 +584,7 @@ tabPanel(
 #############################Identification of markers / Differential expression analysis#########################
 tabPanel(
   "Markers Identification",
+  actionButton("info_btn6", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Marker Identification"),
   fluidRow(   
     box(id = "m_marker_box1",
         h3("Markers identification or Differential expression analysis"),
@@ -644,11 +651,12 @@ tabPanel(
 #############################################Cell type Prediction#################################################
 tabPanel(
   "Cell Type Prediction",
+  actionButton("info_btn7", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Cell Type Prediction"),
   fluidRow(   
     box(id = "m_celltype_box1",
         h3("Predict Cell Type "),
         h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype. To use GPTCelltype locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file"),
-        column(6, selectInput("m_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 1)),
+        column(6, selectInput("m_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 2)),
     ),
   ),
   
@@ -748,6 +756,7 @@ tabPanel(
 #############################################Cluster-based plots#################################################
 tabPanel(
   "Cluster-Based Plots",
+  actionButton("info_btn8", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Cluster-Based Plots"),
   fluidRow(   
     box(id = "m_clusterbased_box1",                      
         h3("Select the plot type to display"), 
@@ -796,6 +805,7 @@ tabPanel(
 #############################################Condition-based analysis#################################################
 tabPanel(
   "Condition Based Analysis",
+  actionButton("info_btn9", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Condition Based Plots"),
   fluidRow(   
     box(id = "m_conditionbased_box1",     
         h3(" Differential expression analysis between two groups"),
@@ -857,6 +867,7 @@ tabPanel(
   useShinyjs(),
   sidebarLayout(
     sidebarPanel(id="subclustering_multiple_sidebar",
+                 actionButton("info_btn10", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Subclustering"),
                  h3(id = "m_subclustering0", "Please run upto Single or Multiple samples Analysis upto Celltype prediction to begin this analysis"),
                  selectInput("m_subclustering1", label = "Select the cluster type for sub clustering", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted", "Select the gene of interest to extract the cells (positive selection)"="selected_gene", "Exclude cells expressing the selected genes, and retain the remaining cells (negative selection)"="exclude_selected_gene"), selected = "seurat_clusters"),
                  uiOutput("m_subclustering_2"),
@@ -911,6 +922,7 @@ tabPanel(
 #############################multiple_Normalization and PCA analysis#########################
                 tabPanel(
                   "Normalization and PCA Analysis",
+                  actionButton("info_btn11", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Normalization and PCA Analysis"),
                   h5("Please use the same normalization method used in single or multiple samples analysis"),
                   #fluidRow(
                   selectInput("subclustering_multiple_sample_normalization_method", label = "Normalization method", choices = c("LogNormalize"="LogNormalize", "SCTransform"="SCTransform"), selected = "SCTransform"),
@@ -972,6 +984,7 @@ tabPanel(
 #############################subclustering_multiple_Clustering#########################
                 tabPanel(
                   "Clustering",
+                  actionButton("info_btn12", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Clustering"),
                   fluidRow(
                     h3("Nearest-neighbour graph construction"),
                     column(3, numericInput("m_subclustering_clustering1", label = "Number of dimensions", min = 0, max = 100, value = 30, step = 1)),
@@ -1143,6 +1156,7 @@ tabPanel(
 #############################Identification of markers / Differential expression analysis#########################
                 tabPanel(
                   "Markers Identification",
+                  actionButton("info_btn13", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Markers Identification"),
                   fluidRow(   
                     box(id = "m_subclustering_marker_box1",
                         h3("Markers identification or Differential expression analysis"),
@@ -1209,11 +1223,12 @@ tabPanel(
 #############################################Cell type Prediction#################################################
                 tabPanel(
                   "Cell Type Prediction",
+                  actionButton("info_btn14", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Cell Type Prediction"),
                   fluidRow(   
                     box(id = "m_subclustering_celltype_box1",
                         h3("Predict Cell Type "),
                         h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype"),
-                        column(6, selectInput("m_subclustering_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 1)),
+                        column(6, selectInput("m_subclustering_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 2)),
                     ),
                   ),
                   
@@ -1313,11 +1328,12 @@ tabPanel(
 #############################################Cluster-based plots#################################################
                 tabPanel(
                   "Cluster-Based Plots",
+                  actionButton("info_btn15", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Cluster-Based Plots"),
                   fluidRow(   
                     box(id = "m_subclustering_clusterbased_box1",                      
                         h3("Select the plot type to display"), 
                         h5("Please make sure 'Identify markers in all clusters' and the same 'cell prediction method' were runned in the previous steps."),
-                        column(6, selectInput("m_subclustering_clusterbased1", label = "No. of features to display", choices = c("1" = 1, "2" = 2, "3"= 3, "4" = 4, "5" = 5, "6" = 6, "7" = 7, "8" = 8, "9" = 9, "10" = 10, "List of gene names" = "gene_name_list"), selected = 5)),
+                        column(6, selectInput("m_subclustering_clusterbased1", label = "No. of features to display", choices = c("1" = 1, "2" = 2, "3"= 3, "4" = 4, "5" = 5, "6" = 6, "7" = 7, "8" = 8, "9" = 9, "10" = 10, "List of gene names" = "gene_name_list"), selected = 3)),
                         column(6, textAreaInput("m_subclustering_clusterbased2", label ="Enter your genes for ploting (eg: gene names separated by , )", value = "", placeholder = "KLK2,KLK3,CTSG,MS4A3,CLEC4OP,KDR", height = '400px')),
                         column(3, selectInput("m_subclustering_clusterbased3", label = "Plot type", choices = c("Spatial Plot" = "spatial_plot", "Dot Plot" = "Dot Plot", "Violin Plot" = "VlnPlot", "Ridge Plot"= "RidgePlot", "Feature Plot" = "FeaturePlot"), selected = "spatial_plot")),
                         column(3, selectInput("m_subclustering_clusterbased4", label = "group.by", choices = c("Seurat clusters" = "seurat_clusters", "Predicted or own label from previous methods" = "predicted"), selected = "seurat_clusters")),
@@ -1361,6 +1377,7 @@ tabPanel(
 #############################################Condition-based analysis#################################################
                 tabPanel(
                   "Condition Based Analysis",
+                  actionButton("info_btn16", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Condition Based Analysis"),
                   fluidRow(   
                     box(id = "m_subclustering_conditionbased_box1",     
                         h3(" Differential expression analysis between two groups"),
@@ -1424,6 +1441,7 @@ tabPanel(
 tabPanel(
   "Correlation Network",
   useShinyjs(),
+  actionButton("info_btn17", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Correlation"),
   fluidRow( 
     box(id = "s_cccn_box0",  width=12,
         h3("To begin this analysis, please complete Single or Multiple samples or subclustering analysis until Cell Type Prediction and Marker Identification step."),
@@ -1464,6 +1482,7 @@ tabPanel(
 tabPanel(
   "GO Terms",
   useShinyjs(),
+  actionButton("info_btn18", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Gene Ontology"),
   fluidRow( 
     box(id = "s_go_box0",  width=12,
         h3("To begin this analysis, please complete Single or Multiple samples or subclustering analysis until Cell Type Prediction and Marker Identification step."),
@@ -1514,6 +1533,7 @@ tabPanel(
 ####################################################Pathway analysis####################################################################
 tabPanel(
   "Pathway Analysis",
+  actionButton("info_btn19", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Pathway Analysis"),
   useShinyjs(),
   fluidRow( 
     box(id = "s_pathway_box0",  width=12,
@@ -1565,6 +1585,7 @@ tabPanel(
 tabPanel(
   "GSEA Analysis",
   useShinyjs(),
+  actionButton("info_btn20", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "GSEA Analysis"),
   fluidRow( 
     box(id = "s_gsea_box0",  width=12,
         h3("To begin this analysis, please complete Single or Multiple samples or subclustering analysis until Cell Type Prediction and Marker Identification step."),
@@ -1613,6 +1634,7 @@ tabPanel(
 #########################################Cell-Cell Communication####################################################################
 tabPanel(
   "Cell-Cell Communication",
+  actionButton("info_btn21", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Cell-Cell Communication Analysis (Cell-chat)"),
   useShinyjs(),
   fluidRow( 
     box(id = "s_cellchat_box0",  width=12,
@@ -1737,6 +1759,7 @@ tabPanel(
 #############################################Trajectory and Pseudotime analysis#################################################
 tabPanel(
   "Trajectory and Pseudotime Analysis",
+  actionButton("info_btn22", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Trajectory & Pseudotime Analysis (Monocle3)"),
   useShinyjs(),
   fluidRow( 
     box(id = "s_trajectory_box0",  width=12,
@@ -1868,6 +1891,7 @@ tabPanel(
     tabPanel(
       "Co-expression Network Analysis",
       useShinyjs(),
+      actionButton("info_btn23", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Co-expression & Network Analysis (hdWGCNA)"),
       fluidRow( 
         box(id = "s_hdwgcna_box0",  width=12,
             h3("To begin this analysis, please complete Single or Multiple samples or subclustering analysis until Cell Type Prediction step."),
@@ -1966,6 +1990,7 @@ tabPanel(
     ####################################################TFs####################################################################
     tabPanel(
       "Transcription Factor Regulatory Network Analysis",
+      actionButton("info_btn24", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Transcription Factor Regulatory Network Analysis (hdWGCNA)"),
       # fluidRow( 
       #   box(id = "s_tfrn_box0",  width=12,
       #       h3("To begin this analysis, please complete Single or Multiple samples or subclustering analysis until Cell Type Prediction step."),

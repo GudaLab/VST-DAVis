@@ -5892,7 +5892,463 @@ server <- function(input, output, session) {
       saveRDS(datainput_single_multiple_sample_tfrn2_level()[6], file= file, compress = TRUE)
     }
   ) 
+  #########################################################################Help text#########################################
+  #################                                             Help                                        #################
+  #########################################################################Help text#########################################
   
+  observeEvent(input$info_btn1, {
+    showModal(modalDialog(
+      title = "File upload and Stats",
+      HTML("
+    <ul>
+      <li><b>H5 Files, spatial image folder (Space Ranger Output) and zip it</b> to single folder for each samples.</li>
+<li><b>Upload Space Ranger Matrix Files (mtx, features, barcodes) and spatial image folder</b>  Space Ranger files: matrix.mtx.gz, feature.tsv.gz, barcode.tsv.gz, spatial image folder and zip it to single folder for each samples.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn2, {
+    showModal(modalDialog(
+      title = "Sample Groups and QC Filtering",
+      HTML("
+    <ul>
+      <li><b>Number of groups</b> (Default: 1 to 6) – Select up to 6 groups.</li>
+<li><b>Group 1 Name</b> (Default: Group1) – Type the group name.</li>
+<li><b>Group 2 Name</b> (Default: Group2) – Type the group name.</li>
+<li><b>Group 3 Name</b> (Default: Group3) – Type the group name.</li>
+<li><b>Group 4 Name</b> (Default: Group4) – Type the group name.</li>
+<li><b>Group 5 Name</b> (Default: Group5) – Type the group name.</li>
+<li><b>Group 6 Name</b> (Default: Group6) – Type the group name.</li>
+<li><b>Min gene count per cell</b> (Default: 0) – Filters out cells with fewer than this number of genes expressed. [Recommended: 200 to 500].</li>
+<li><b>Max gene count per cell</b> (Default: 7500) – Filters out cells with more than this number of genes expressed. [Recommended: 5000 to 7500].</li>
+<li><b>Max mitochondrial %</b> (Default: 5) – Removes cells with excessive mitochondrial gene expression, often indicating low-quality or dying cells. [Recommended: <10%].</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn3, {
+    showModal(modalDialog(
+      title = "Normalization and PCA Analysis",
+      HTML("
+      
+    <ul>
+    <li><b>Normalization method</b>,(Default: SCTransform), or LogNormalize. </li>
+      <li><b>Scale factor</b> (Default: 10000, Min: 1, Max: 1e6) – Scale factor used in LogNormalize method for total expression normalization.</li>
+<li><b>Variable gene method</b> (Default: vst) – Method for selecting variable features: vst (default), mean.var.plot, or dispersion.</li>
+<li><b>Number of variable genes</b> (Default: 2000, Min: 100, Max: 10000) – Number of top variable genes to retain for downstream analysis.</li>
+<li><b>PCA dimensions</b> (Default: 30, Min: 2, Max: 100) – Number of principal components computed for dimensionality reduction.</li>
+<h4>LogNormalize</h4>
+<li><b>Integration method</b> (Default: cca) – integration is performed.</li>
+<li><b>CCAIntegration</b> (Default: Reduction = cca; Distance = Euclidean) – Canonical correlation analysis for dataset integration.</li>
+<li><b>RPCAIntegration</b> (Default: Reduction = rpca; Distance = Euclidean) – Faster, scalable variant of CCA.</li>
+
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn4, {
+    showModal(modalDialog(
+      title = "Clustering",
+      HTML("
+    <ul>
+      <li><b>Clustering resolution</b> (Default: 0.5,  Min: 0.1, Max: 1) – Resolution used for cluster granularity. Higher = more clusters.</li>
+<li><b>Clustering algorithm</b> (Default: Louvain) – Graph-based clustering algorithm: Louvain (1), SLM (3), or Leiden (4).</li>
+<li><b>UMAP k-nearest-neighbours</b> (Default: 20, Min: 2, Max: 50) – Number of nearest neighbors considered for UMAP.</li>
+<li><b>UMAP dims</b> (Default: 30, Min: 2, Max: 100) – Number of PCs used for UMAP dimensionality reduction.</li>
+<li><b>UMAP min.dist</b> (Default: 0.3, Min: 0.001, Max: 0.5) – Controls how tightly UMAP clusters points. Smaller = more tightly packed.</li>
+<li><b>tSNE dims</b> (Default: 30, Min: 2, Max: 100) – Number of PCs used for t-SNE dimensionality reduction.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn6, {
+    showModal(modalDialog(
+      title = "Marker Identification",
+      HTML("
+    <ul>
+<li><b>FindAllMarkers</b> (Default: Select all cluster) – Identifies marker genes for each cluster compared to all other cells.</li>
+<li><b>FindMarkers</b> (Default: Select one cluster against another cluster) – Finds differentially expressed genes between two specific groups of cells.</li>
+<li><b>FindConservedMarkers</b> (Default: Select one cluster to check for conserved in all clusters) – Identifies markers that are conserved across multiple groups (e.g., conditions or batches).</li>
+<li><b>min.pct</b> (Default: 0.25, Min: 0.01, Max: 1.0) – Minimum fraction of cells expressing the gene for it to be tested.</li>
+<li><b>logfc.threshold</b> (Default: 0.25, Min: 0.01, Max: ∞) – Minimum log fold change required to consider gene differentially expressed.</li>
+<li><b>Statistical test</b> (Default: wilcox) – Statistical test used for differentially expressed gene or marker identification.</li>
+<li><b>Return only positive markers</b> (Default: Yes) – Whether to return only genes upregulated in the target group.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn7, {
+    showModal(modalDialog(
+      title = "Cell Type Prediction",
+      HTML("
+    <ul>
+      <li><b>Cell type method</b> (Default: SingleR),Other methods are  (SingleR, GPTCelltype, Use Own Labels) – Methods for cell type prediction.</li>
+
+<li><b>Reference tissue for SingleR</b> (Default: hpca, blueprint_encode, mouse_rnaseq, immgen, dice, novershtern_hematopoietic, monaco_immune) – Reference data sources for SingleR annotation.</li>
+<li><b>DE method for SingleR</b> (Default: classic) – SingleR Differential expression method used for prediction scoring. (classi, wilcox, t test).</li>
+<li><b>Reference data for ScType</b> (Default: Immune system) – Selected cell type reference for matching.</li>
+<li><b>Top genes for prediction for GPTCelltype</b> (Default: 10) – Number of top genes used for GPTCelltype or other predictions.</li>
+<li><b>Modelfor GPTCelltype</b> (Default: gpt-5, gpt-5-mini, gpt-5-nano, gpt-4, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.) – OpenAI models available in GPTCelltype. Available via the web platform. To use it locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file</li>
+<li><b>Use Own Labels</b> Default: Cluster 0 to Cluster N) — This option allows users to manually assign custom names to clusters. Users may enter identical names for two or more clusters if they wish to merge them into a single group.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn8, {
+    showModal(modalDialog(
+      title = "Cluster-Based Plots",
+      HTML("
+    <ul>
+      <li><b>No. of features to display</b> (Default: 1) – Show up to 1 genes for every cluster or select the list of gene name from the dropdown and type the specific genes which you are interested in eg: KLk2,KLK3,CTSG,MS4A3.</li>
+<li><b>Select one or multiple cluster(s) for plotting</b> (Default: Default all clusters) – User can adjust the cluster to plot.</li>
+<li><b>Plot type</b> (Default: Dot Plot) – Types of visualizations for gene expression or differentially expressed genes. (Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot).</li>
+<li><b>Dim plot labels</b> (Default: No) – Whether to display labels in dimensionality reduction plots.</li>
+<li><b>Group.by</b> (Default: Seurat cluster) – Grouping variable for DE or plotting, e.g., Seurat cluster or Predicted or Own label.</li>
+<li><b>Split.by</b> (Default: NULL) – Whether to split plots by condition, sample, or not at all.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn9, {
+    showModal(modalDialog(
+      title = "Condition Based Plots",
+      HTML("
+    <ul>
+      <li><b>Select the Condition1</b> (Default: Group1) – User can select any one condition.</li>
+<li><b>Select the Condition2</b> (Default: Group2) – User can select any one condition.</li>
+<li><b>min.pct</b> (Default: 0.25, Min: 0.01, Max: 1.0) – Minimum fraction of cells expressing the gene to be tested in marker analysis.</li>
+<li><b>logfc.threshold</b> (Default: 0.25, Min: 0.01, Max: ∞) – Log fold change threshold for identifying differentially expressed genes.</li>
+<li><b>Statistical test</b> (Default: wilcox) – Test used for differential expression: e.g., wilcox, wilcox_limma, bimod, roc, t, LR, MAST.</li>
+<li><b>Positive markers only</b> (Default: Yes) – If Yes, return only genes upre.g.ulated in the target group.</li>
+<li><b>group.by</b> (Default: condition) – Metadata variable to group cells during marker analysis. (Condition and samples).</li>
+<li><b>Plot type</b> (Default: Spatial Plot) – Types of visualizations for gene expression or differentially expressed genes. (Spatial Plot, Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot.</li>
+<li><b>Number of features to display</b> (Default: 3) – Number of genes to visualize per plot or select the list of gene name from the dropdown and type the specific genes which you are interested in eg: KLk2,KLK3,CTSG,MS4A3.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn10, {
+    showModal(modalDialog(
+      title = "Subclustering",
+      HTML("
+    <ul>
+      <li><b>Cluster Type Selection</b> (Default: Seurat clusters) – Choose source for subclustering (Seurat, predicted, or gene-based selection.</li>
+<li><b>Select cluster(s)</b> (Default: Select the cluster default 0) – Generated based on selected cluster type.</li>
+<li><b>Genes to include (positive selection)</b> (Default: Eg: FCN1 or FCN1,PSAP) – Enter comma-separated gene symbols for subsetting.</li>
+<li><b>Genes to exclude (negative selection)</b> (Default: Eg: FCN1 or FCN1,PSAP) – Enter comma-separated gene symbols to exclude cells.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn11, {
+    showModal(modalDialog(
+      title = "Normalization and PCA Analysis",
+      HTML("<ul>
+      <li><b>Normalization method</b>,(Default: SCTransform), or LogNormalize. </li>
+      <li><b>Scale factor</b> (Default: 10000, Min: 1, Max: 1e6) – Scale factor used in LogNormalize method for total expression normalization.</li>
+<li><b>Variable gene method</b> (Default: vst) – Method for selecting variable features: vst (default), mean.var.plot, or dispersion.</li>
+<li><b>Number of variable genes</b> (Default: 2000, Min: 100, Max: 10000) – Number of top variable genes to retain for downstream analysis.</li>
+<li><b>PCA dimensions</b> (Default: 30, Min: 2, Max: 100) – Number of principal components computed for dimensionality reduction.</li>
+
+</ul>
+"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn12, {
+    showModal(modalDialog(
+      title = "Clustering",
+      HTML("<ul>
+  <li><b>Clustering resolution</b> (Default: 0.5, , Min: 0.1, Max: 1) – Resolution used for cluster granularity. Higher = more clusters.</li>
+<li><b>Clustering algorithm</b> (Default: Louvain) – Graph-based clustering algorithm: Louvain (1), SLM (3), or Leiden (4).</li>
+<li><b>UMAP k-nearest-neighbours</b> (Default: 20, Min: 2, Max: 50) – Number of nearest neighbors considered for UMAP.</li>
+<li><b>UMAP dims</b> (Default: 30, Min: 2, Max: 100) – Number of PCs used for UMAP dimensionality reduction.</li>
+<li><b>UMAP min.dist</b> (Default: 0.3, Min: 0.001, Max: 0.5) – Controls how tightly UMAP clusters points. Smaller = more tightly packed.</li>
+<li><b>tSNE dims</b> (Default: 30, Min: 2, Max: 100) – Number of PCs used for t-SNE dimensionality reduction.</li>
+
+    </ul>"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn13, {
+    showModal(modalDialog(
+      title = "Markers Identification",
+      HTML("<ul>
+      <li><b>FindAllMarkers</b> (Default: Select all cluster) – Identifies marker genes for each cluster compared to all other cells.</li>
+<li><b>FindMarkers</b> (Default: Select one cluster against another cluster) – Finds differentially expressed genes between two specific groups of cells.</li>
+<li><b>FindConservedMarkers</b> (Default: Select one cluster to check for conserved in all clusters) – Identifies markers that are conserved across multiple groups (e.g., conditions or batches).</li>
+<li><b>min.pct</b> (Default: 0.25, Min: 0.01, Max: 1.0) – Minimum fraction of cells expressing the gene for it to be tested.</li>
+<li><b>logfc.threshold</b> (Default: 0.25, Min: 0.01, Max:  ∞) – Minimum log fold change required to consider gene differentially expressed.</li>
+<li><b>Statistical test</b> (Default: wilcox) – Statistical test used for differentially expressed gene or marker identification.</li>
+<li><b>Return only positive markers</b> (Default: Yes) – Whether to return only genes upregulated in the target group.</li>
+    </ul>"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn14, {
+    showModal(modalDialog(
+      title = "Cell Type Prediction",
+      HTML("<ul>
+    <li><b>Cell type method</b> (Default: SingleR),Other methods are  (SingleR, GPTCelltype, Use Own Labels) – Methods for cell type prediction.</li>
+
+<li><b>Reference tissue for SingleR</b> (Default: hpca, blueprint_encode, mouse_rnaseq, immgen, dice, novershtern_hematopoietic, monaco_immune) – Reference data sources for SingleR annotation.</li>
+<li><b>DE method for SingleR</b> (Default: classic) – SingleR Differential expression method used for prediction scoring. (classi, wilcox, t test).</li>
+<li><b>Reference data for ScType</b> (Default: Immune system) – Selected cell type reference for matching.</li>
+<li><b>Top genes for prediction for GPTCelltype</b> (Default: 10) – Number of top genes used for GPTCelltype or other predictions.</li>
+<li><b>Modelfor GPTCelltype</b> (Default: gpt-5, gpt-5-mini, gpt-5-nano, gpt-4, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.) – OpenAI models available in GPTCelltype.</li>
+<li><b>Use Own Labels</b> Default: Cluster 0 to Cluster N) — This option allows users to manually assign custom names to clusters. Users may enter identical names for two or more clusters if they wish to merge them into a single group.</li>
+   
+    </ul>"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn15, {
+    showModal(modalDialog(
+      title = "Cluster-Based Plots",
+      HTML("<ul>
+      <li><b>No. of features to display</b> (Default: 3) – Show up to 3 genes for every cluster or select the list of gene name from the dropdown and type the specific genes which you are interested in eg: KLk2,KLK3,CTSG,MS4A3.</li>
+<li><b>Select one or multiple cluster(s) for plotting</b> (Default: Default all clusters) – User can adjust the cluster to plot.</li>
+<li><b>Plot type</b> (Default: Dot Plot) – Types of visualizations for gene expression or differentially expressed genes. (Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot).</li>
+<li><b>Dim plot labels</b> (Default: No) – Whether to display labels in dimensionality reduction plots.</li>
+<li><b>Group.by</b> (Default: Seurat cluster) – Grouping variable for DE or plotting, e.g., Seurat cluster or Predicted or Own label.</li>
+<li><b>Split.by</b> (Default: NULL) – Whether to split plots by condition, sample, or not at all.</li>
+    </ul>"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn16, {
+    showModal(modalDialog(
+      title = "Condition Based Analysis",
+      HTML("<ul>
+      <li><b>Select the Condition1</b> (Default: Group1) – User can select any one condition.</li>
+<li><b>Select the Condition2</b> (Default: Group2) – User can select any one condition.</li>
+<li><b>min.pct</b> (Default: 0.25, Min: 0.01, Max: 1.0) – Minimum fraction of cells expressing the gene to be tested in marker analysis.</li>
+<li><b>logfc.threshold</b> (Default: 0.25, Min: 0.01, Max:  ∞) – Log fold change threshold for identifying differentially expressed genes.</li>
+<li><b>Statistical test</b> (Default: wilcox) – Test used for differential expression: e.g., wilcox, wilcox_limma, bimod, roc, t, LR, MAST.</li>
+<li><b>Positive markers only</b> (Default: Yes) – If Yes, return only genes upre.g.ulated in the target group.</li>
+<li><b>group.by</b> (Default: condition) – Metadata variable to group cells during marker analysis. (Condition and samples).</li>
+<li><b>Plot type</b> (Default: Spatial Plot) – Types of visualizations for gene expression or differentially expressed genes. (Spatial Plot, Dot Plot, Violin Plot, Ridge Plot, Feature Plot, Volcano Plot.</li>
+<li><b>Number of features to display</b> (Default: 3) – Number of genes to visualize per plot or select the list of gene name from the dropdown and type the specific genes which you are interested in eg: KLk2,KLK3,CTSG,MS4A3.</li>
+    </ul>"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })  
+  observeEvent(input$info_btn17, {
+    showModal(modalDialog(
+      title = "Correlation",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) – Select the input from full dataset or subclustering.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Select celltype grouping for correlation. (Seurat clusters or predicted).</li>
+<li><b>Correlation method</b> (Default: Spearman) – Method to compute correlation between clusters (Pearson, Spearman, Kendall).</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn18, {
+    showModal(modalDialog(
+      title = "Gene Ontology",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) Users can choose to perform analyses on the full dataset, on a subclustered subset, or by providing a custom gene list. In the latter case, users may directly type the list of genes of interest for analysis.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Clustering source for gene selection. (Seurat clusters or predicted).</li>
+<li><b>Organism</b> (Default: Human) – Organism-specific annotation package. (Human, Mouse, Rat, Pig, Rhesus).</li>
+<li><b>Ontology</b> (Default: BP) – GO ontology cate.g.ories: biological process, etc. (BP, MF, CC, ALL).</li>
+<li><b>pAdjustMethod</b> (Default: BH) – Method for p-value adjustment. (holm, bonferroni, BH, BY, fdr, none).</li>
+<li><b>pvalueCutoff</b> (Default: 0.05, Min: 0, Max: 1) – Significance threshold for raw p-value.</li>
+<li><b>qvalueCutoff</b> (Default: 0.2, Min: 0, Max: 1) – Significance threshold for q-value.</li>
+<li><b>Minimal gene size</b> (Default: 10, Min: 1, Max: 500) – Minimum number of genes in a cate.g.ory.</li>
+<li><b>Maximal gene size</b> (Default: 500, Min: 10, Max: 5000) – Maximum number of genes in a cate.g.ory.</li>
+<li><b>Plot type</b> (Default: Dotplot) – Visualization options for enriched GO terms. (dotplot, barplot, cnetplot, upsetplot).</li>
+<li><b>Top categories to plot</b> (Default: 10, Min: 1, Max: 50) – Number of cate.g.ories to include in plots.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn19, {
+    showModal(modalDialog(
+      title = "Pathway Analysis",
+      HTML("
+    <ul>
+      <li><b>Pathway analysis type</b> (Default: KEGG) – Source of pathway database. (KEGG or Reactome).</li>
+<li><b>Input data</b> (Default: Output of single or multiple samples) – Select the input from full dataset or subclustering.</li>
+<li><b>Select one or multiple cluster(s) for analsysis</b> (Default:0) – Select one or multiple clusters.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Clustering source for gene selection. (Seurat clusters or predicted).</li>
+<li><b>Organism</b> (Default: Human) – Organism-specific annotation package. (Human, Mouse, Rat).</li>
+<li><b>pAdjustMethod</b> (Default: BH) – Adjustment for multiple testing.(holm, bonferroni, BH, BY, fdr, none).</li>
+<li><b>pvalueCutoff</b> (Default: 0.05, Min: 0, Max: 1) – Significance threshold for raw p-value.</li>
+<li><b>qvalueCutoff</b> (Default: 0.2, Min: 0, Max: 1) – Significance threshold for q-value.</li>
+<li><b>Minimal gene size</b> (Default: 10, Min: 1, Max: 500) – Minimum number of genes in pathway.</li>
+<li><b>Maximal gene size</b> (Default: 500, Min: 10, Max: 5000) – Maximum number of genes in pathway.</li>
+<li><b>Plot type</b> (Default: Dotplot) – Type of plot for pathway enrichment. (dotplot, barplot, cnetplot, upsetplot).</li>
+<li><b>Top categories to plot (Pathway)</b> (Default: 10, Min: 1, Max: 50) – Number of enriched pathways shown.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn20, {
+    showModal(modalDialog(
+      title = "GSEA Analysis",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) – Select the input from full dataset or subclustering.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Clustering source for gene selection. (Seurat clusters or predicted).</li>
+<li><b>Select one or multiple cluster(s) for analsysis</b> (Default:0) – Select one or multiple clusters.</li>
+<li><b>Organism</b> (Default: Homo sapiens) – Species-specific gene set database. (Homo sapiens, Mus musculus).</li>
+<li><b>MSigDB category</b> (Default: Hallmark gene sets (H)) – Gene set collection from MSigDB. (H, C1, C2, C3, C4, C5, C6, C7, C8).</li>
+<li><b>ScoreType</b> (Default: std) – Controls whether to score all, positive or negative enrichment. (std, pos, neg.).</li>
+<li><b>Minimal gene size</b> (Default: 15, Min: 5, Max: 500) – Minimum genes per gene set.</li>
+<li><b>Maximal gene size</b> (Default: 50, Min: 15, Max: 5000) – Maximum genes per gene set.</li>
+<li><b>Permutations</b> (Default: 100, Min: 10, Max: 10000) – Number of random permutations to compute significance.</li>
+<li><b>Plot type</b> (Default: GSEA plot) – Style of plot for GSEA results. (GSEA plot, plotGseaTable, barplot).</li>
+<li><b>Top significant results to plot</b> (Default: 10, Min: 1, Max: 50) – Number of enriched gene sets to plot.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn21, {
+    showModal(modalDialog(
+      title = "Cell-Cell Communication Analysis (Cell-chat)",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) – Source of expression data for CellChat.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Cell grouping used in communication analysis. (Seurat clusters or predicted).</li>
+<li><b>Organism</b> (Default: PPI.human) – Organism-specific protein-protein interaction database. (PPI.human, PPI.mouse).</li>
+<li><b>Min % cells expressed</b> (Default: 0, Min: 0, Max: 100) – Minimum percent of cells expressing ligand/receptor.</li>
+<li><b>LogFC threshold</b> (Default: 0, Min: 0, Max: 10) – Minimum log fold change for expression filter.</li>
+<li><b>P-value threshold</b> (Default: 0.05, Min: 0.0001, Max: 1) – Significance cutoff for ligand-receptor pairs.</li>
+<li><b>Averaging method</b> (Default: triMean) – Method for averaging gene expression per group. (triMean, truncatedMean, thresholdedMean, median).</li>
+<li><b>Minimum cell count</b> (Default: 10, Min: 5, Max: 1000) – Minimum number of cells in a group.</li>
+<li><b>Pattern k-value</b> (Default: 2, Min: 2, Max: 20) – Number of communication patterns to infer.</li>
+<li><b>Show label</b> (Default: Yes) – Display labels on communication plots.</li>
+<li><b>Specific Signaling Pathways</b> (Default: The default 1st one is selected) – Display the communication for the selected.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn22, {
+    showModal(modalDialog(
+      title = "Trajectory & Pseudotime Analysis (Monocle3)",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) – Select the input from full dataset or subclustering.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Grouping variable for pseudotime.</li>
+<li><b>use_partition</b> (Default: No) – Whether to use partitioned cell sets.</li>
+<li><b>close_loop</b> (Default: Yes) – Allow trajectory graph to close loops.</li>
+<li><b>label_groups_by_cluster</b> (Default: No) – Whether to show cluster labels.</li>
+<li><b>label_branch_points</b> (Default: Yes) – Show pseudotime branch points.</li>
+<li><b>label_roots</b> (Default: Yes) – Show root cells in trajectory.</li>
+<li><b>label_leaves</b> (Default: No) – Show leaf cells in trajectory.</li>
+<li><b>Order cell in Pseudotime</b> (Default: Select one cluster as the root) – Displays all clusters or predicted cell type.</li>
+<li><b>Gene functional change (neighbor_graph)</b> (Default: principal_graph) or select knn; Graph type for trajectory inference.</li>
+<li><b>Top genes to display in feature plot</b> (Default: 5) – Number or list of genes to plot along pseudotime.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn23, {
+    showModal(modalDialog(
+      title = "Co-expression & Network Analysis (hdWGCNA)",
+      HTML("
+    <ul>
+      <li><b>Input data</b> (Default: Output of single or multiple samples) – Select the processed input source.</li>
+<li><b>Celltype method</b> (Default: Seurat clusters) – Seurat cluster or predicted.</li>
+<li><b>Select any one cluster</b> (Default: Default 0) – List all the clusters or names.</li>
+<li><b>Input data</b> (Default: Output of single or multiple samples) – Select the processed input source.</li>
+<li><b>Reduction type</b> (Default: UMAP) – Dimensionality reduction for module visualization. (UMAP or PCA).</li>
+<li><b>Select soft-power Network type</b> (Default: signed) – Type of WGCNA correlation network. (signed, unsigned, signed hybrid).</li>
+<li><b>Module eigengenes and connectivity Scale model</b> (Default: linear) – Statistical model for eigengene computation. (linear, poisson, negbinom).</li>
+<li><b>Harmonized eigengenes</b> (Default: Yes) – Whether to harmonize eigengenes across datasets.</li>
+<li><b>Nearest neighbors (k)</b> (Default: 10, Min: 1, Max: 100) – K for building metacells.</li>
+<li><b>Minimum cell group size</b> (Default: 10, Min: 5, Max: 100) – Minimum cells in a group to build a metacell.</li>
+<li><b>Max shared cells</b> (Default: 15, Min: 1, Max: 100) – Max overlap between metacells.</li>
+<li><b>Target metacells</b> (Default: 1000, Min: 50, Max: 5000) – Max number of metacells to construct.</li>
+<li><b>Hub genes per module</b> (Default: 5, Min: 1, Max: 50) – Number of top hub genes labeled.</li>
+<li><b>Show inter-module edges</b> (Default: No) – Whether to draw edges across modules.</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })
+  
+  observeEvent(input$info_btn24, {
+    showModal(modalDialog(
+      title = "Transcription Factor Regulatory Network Analysis (hdWGCNA)",
+      HTML("
+    <ul>
+      <li><b>Organism</b> (Default: Human) – Reference genome annotation. (Human or Mouse).</li>
+<li><b>XGBoost max_depth</b> (Default: 1, Min: 1, Max: 10) – Tree depth for motif-based TF prediction.</li>
+<li><b>eta</b> (Default: 0.1, Min: 0.01, Max: 1) – Learning rate in XGBoost.</li>
+<li><b>alpha</b> (Default: 0.5, Min: 0, Max: 1) – Re.g.ularization parameter.</li>
+<li><b>Regulatory score threshold</b> (Default: 0.01, Min: 0, Max: 1) – Minimum score for defining TF-gene edge.</li>
+<li><b>Top TFs per gene</b> (Default: 10, Min: 1, Max: 50) – Top regulators retained per gene.</li>
+<li><b>Positive regulon threshold</b> (Default: 0.05, Min: 0, Max: 1) – Minimum expression for positive regulons.</li>
+<li><b>Negative regulon threshold</b> (Default: -0.05, Min: -1, Max: 0) – Threshold for defining negative regulons.</li>
+<li><b>Color network edge by</b> (Default: Cor) – TF network edge attribute. (Cor, Gain).</li>
+<li><b>Extend TF network layers</b> (Default: Primary and secondary) – Depth of TF-target extension. (Primary or Primary and secondary or Primary, secondary and tertiary).</li>
+    </ul>
+    "),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+  })  
     
   
 }
