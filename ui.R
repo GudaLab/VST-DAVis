@@ -170,7 +170,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
              br(),
              
              tags$a(href = "example_files/P1_ON1_A.zip",
-                    "H5 File and spatial image files (Human)",
+                    "H5 File and spatial image files (Organism: Human)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br(),
@@ -179,7 +179,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
              br(),
              
              tags$a(href = "example_files/control_e14_3.zip",
-                    "Matrix, Feature, Barcodes and spatial image files (Mouse)",
+                    "Matrix, Feature, Barcodes and spatial image files (Organism: Mouse)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br()
@@ -1605,7 +1605,7 @@ tabPanel(
     box(id = "s_gsea_box2",
         h3("GSEA parameters"), 
         column(4, selectInput("s_gsea5", label = "Organism", choices = c("Human"="Homo sapiens", "Mouse"="Mus musculus"), selected = "Homo sapiens")),
-        column(4, selectInput("s_gsea6", label = "Category (from MSigDB)", choices = c("Hallmark gene sets (H)"="H", "Positional gene sets (C1)"="C1", "Curated gene sets (C2)"="C2", "Regulatory target gene sets (C3)"="C3", "Computational gene sets (C4)"="C4", "Ontology gene sets (C5)" ="C5", "Oncogenic signature gene sets (C6)"="C6", "Immunologic signature gene sets (C7)"="C7", "Cell type signature gene sets (C8)"="C8"), selected = "C3")),
+        column(4, selectInput("s_gsea6", label = "Category (from MSigDB)", choices = c("Hallmark gene sets (H)"="H", "Positional gene sets (C1)"="C1", "Curated gene sets (C2)"="C2", "Regulatory target gene sets (C3)"="C3", "Computational gene sets (C4)"="C4", "Ontology gene sets (C5)" ="C5", "Oncogenic signature gene sets (C6)"="C6", "Immunologic signature gene sets (C7)"="C7", "Cell type signature gene sets (C8)"="C8"), selected = "C2")),
         column(4, selectInput("s_gsea7", label = "ScoreType", choices = c("std"="std", "pos"="pos", "neg"="neg"), selected = "std")),
         column(4, numericInput("s_gsea8", label = "Minimal size of genes", value = 15)),
         column(4, numericInput("s_gsea9", label = "Maximal size of genes", value = 50)),
