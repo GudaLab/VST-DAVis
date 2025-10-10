@@ -170,7 +170,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
              br(),
              
              tags$a(href = "example_files/P1_ON1_A.zip",
-                    "H5 File and spatial image files",
+                    "H5 File and spatial image files (Human)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br(),
@@ -179,7 +179,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
              br(),
              
              tags$a(href = "example_files/control_e14_3.zip",
-                    "Matrix, Feature, Barcodes and spatial image files",
+                    "Matrix, Feature, Barcodes and spatial image files (Mouse)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br()
@@ -1605,7 +1605,7 @@ tabPanel(
     box(id = "s_gsea_box2",
         h3("GSEA parameters"), 
         column(4, selectInput("s_gsea5", label = "Organism", choices = c("Human"="Homo sapiens", "Mouse"="Mus musculus"), selected = "Homo sapiens")),
-        column(4, selectInput("s_gsea6", label = "Category (from MSigDB)", choices = c("Hallmark gene sets (H)"="H", "Positional gene sets (C1)"="C1", "Curated gene sets (C2)"="C2", "Regulatory target gene sets (C3)"="C3", "Computational gene sets (C4)"="C4", "Ontology gene sets (C5)" ="C5", "Oncogenic signature gene sets (C6)"="C6", "Immunologic signature gene sets (C7)"="C7", "Cell type signature gene sets (C8)"="C8"), selected = "H")),
+        column(4, selectInput("s_gsea6", label = "Category (from MSigDB)", choices = c("Hallmark gene sets (H)"="H", "Positional gene sets (C1)"="C1", "Curated gene sets (C2)"="C2", "Regulatory target gene sets (C3)"="C3", "Computational gene sets (C4)"="C4", "Ontology gene sets (C5)" ="C5", "Oncogenic signature gene sets (C6)"="C6", "Immunologic signature gene sets (C7)"="C7", "Cell type signature gene sets (C8)"="C8"), selected = "C3")),
         column(4, selectInput("s_gsea7", label = "ScoreType", choices = c("std"="std", "pos"="pos", "neg"="neg"), selected = "std")),
         column(4, numericInput("s_gsea8", label = "Minimal size of genes", value = 15)),
         column(4, numericInput("s_gsea9", label = "Maximal size of genes", value = 50)),
@@ -2003,7 +2003,7 @@ tabPanel(
             column(6, selectInput("s_tfrn1", label = "Organism", choices = c("Human"="EnsDb.Hsapiens.v86", "Mouse"="EnsDb.Mmusculus.v79"), selected = "EnsDb.Hsapiens.v86")),
         ),
         box(id = "s_tfrn_box2",
-            h3("Identify TFs in promoter regions (uses JASPAR 2020 database, Motif scan and XGBOost)"),
+            h3("Identify TFs in promoter regions (uses JASPAR 2020 database, Motif scan and XGBoost)"),
             column(6, numericInput("s_tfrn2", label = "max_depth", value = 1)),
             column(6, numericInput("s_tfrn3", label = "eta", value = 0.1)),
             column(6, numericInput("s_tfrn4", label = "alpha", value = 0.5)),
