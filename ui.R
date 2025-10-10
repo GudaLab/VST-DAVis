@@ -169,7 +169,7 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
              tags$b("SpaceRanger h5 format and spatial image files"),
              br(),
              
-             tags$a(href = "example_files/P1_ON1_A.zip",
+             tags$a(href = "https://www.gudalab-rtools.net/GSM7476185.zip",
                     "H5 File and spatial image files (Organism: Human)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
