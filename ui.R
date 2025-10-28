@@ -109,7 +109,15 @@ runApp('/path/to/the/VST-DAVis-master', launch.browser=TRUE)</pre>
 <p>VST-DAVis was developed by Sankarasubramanian Jagadesan and Babu Guda. We share a passion for developing a user-friendly tool for biologists, particularly those who do not have access to bioinformaticians or programming expertise.
 </p>
 <hr>
-"),        
+"),
+tags$head(
+         tags$style(HTML("
+    #view_count { color: #dc2626; font-weight: 700; }  /* red, bold number */
+    .views-center { text-align: center; }
+  "))
+       ),
+       tags$div(class = "views-center", tags$p("Total number of views: ",textOutput("view_count", inline = TRUE))),
+       hr(),        
       ),
     ),
 
