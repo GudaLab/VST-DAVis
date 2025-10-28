@@ -25,6 +25,7 @@ if (!require("ggupset")) install.packages("ggupset")
 if (!require("gridExtra")) install.packages("gridExtra")
 if (!require("ggalluvial")) install.packages("ggalluvial")
 if (!require("NMF")) install.packages("NMF")
+if (!require('filelock')) install.packages("filelock")
 if (!require("ggraph")) install.packages("ggraph")
 if (!require("igraph")) install.packages("igraph")
 if (!require("cowplot"))install.packages("cowplot")
@@ -129,3 +130,20 @@ if (!dir.exists(example_data_dir)) {
 
 
 
+
+#views
+count_file <- "view_counter.rds"
+lock_file  <- "view_counter.lock"
+if (!file.exists(count_file)) saveRDS(0L, count_file)
+
+read_count <- function() {
+  readRDS(count_file)
+}
+increment_count <- function() {
+  lock <- lock(lock_file, timeout = 5000)   # wait up to 5s for the lock
+  on.exit(unlock(lock), add = TRUE)
+  n <- readRDS(count_file)
+  n <- n + 1L
+  saveRDS(n, count_file)
+  n
+}
