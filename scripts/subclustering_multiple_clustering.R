@@ -17,14 +17,14 @@ datainput_subclustering_multiple_clustering <- function(
     index_m_subclustering_clustering12   # label flag for tSNE plots (TRUE/FALSE)
 ) {
   # ---- Libraries (quietly) ----
-  suppressPackageStartupMessages({
-    library(Seurat)
-    library(data.table)
-    library(ggplot2)
-    library(patchwork)
-    library(tidyr)
-    library(dplyr)
-  })
+  #suppressPackageStartupMessages({
+  #  library(Seurat)
+  #  library(data.table)
+  #  library(ggplot2)
+  #  library(patchwork)
+  #  library(tidyr)
+  #  library(dplyr)
+  #})
   
   # ---- Coerce inputs & basic guards ----
   index_m_subclustering_clustering5  <- as.numeric(index_m_subclustering_clustering5)
