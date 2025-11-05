@@ -33,9 +33,9 @@ VST-DAVis is deployed online and accessible at:
 
 ### Prerequisites
 Ensure the following software is installed:
-- **R** (>= 4.5.1): [Download R](https://www.r-project.org/)
+- **R** (>= 4.5.2): [Download R](https://www.r-project.org/)
 - **RStudio** (>= 2025.09.2): [Download RStudio](https://posit.co/download/rstudio-desktop/)
-- **Bioconductor** (>= 3.21)
+- **Bioconductor** (>= 3.22)
 - **Shiny** (>= 1.11.1)
 
 **Note:** VST-DAVis has been tested with these versions. Using older versions of R may cause errors during package installation. Updating to the latest R version is recommended.
@@ -76,12 +76,12 @@ install_github_packages <- function(packages) {
 }
 
 # List of CRAN packages
-cran_packages <- c("shiny", "DT", "shinythemes", "shinyjs", "shinyFiles", "shinyWidgets", "shinycssloaders", "ggplot2", "data.table", "ggpubr", "shinydashboard", "dplyr", "tibble", "HGNChelper", "openai", "metap", "ggrepel", "R.utils", "circlize", "hdf5r", "ggupset", "gridExtra", "ggalluvial", "NMF", "ggraph", "igraph", "cowplot", "pdftools", "xgboost", "msigdbr")
+cran_packages <- c("shiny", "DT", "shinythemes", "shinyjs", "shinyFiles", "shinyWidgets", "shinycssloaders", "ggplot2", "data.table", "ggpubr", "shinydashboard", "dplyr", "tibble", "HGNChelper", "openai", "metap", "ggrepel", "R.utils", "circlize", "hdf5r", "ggupset", "gridExtra", "ggalluvial", "NMF", "ggraph", "igraph", "cowplot", "pdftools", "xgboost", "Seurat", "msigdbr")
 
 if (!require("msigdbdf"))install.packages("msigdbdf", repos = "https://igordot.r-universe.dev")
 
 # List of Bioconductor packages
-bioc_packages <- c("Seurat", "SeuratObject", "sctransform", "celldex", "SingleR", "scRNAseq", "glmGamPoi", "scran", "EnhancedVolcano", "ComplexHeatmap", "clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db", "org.Mmu.eg.db", "org.Rn.eg.db", "org.Ss.eg.db", "ReactomePA", "fgsea", "enrichplot", "multtest", "WGCNA", "hdWGCNA", "motifmatchr", "TFBSTools", "GenomicRanges", "JASPAR2020", "JASPAR2024", "EnsDb.Hsapiens.v86", "BSgenome.Hsapiens.UCSC.hg38", "BSgenome.Mmusculus.UCSC.mm10")
+bioc_packages <- c("SeuratObject", "sctransform", "celldex", "SingleR", "scRNAseq", "glmGamPoi", "scran", "EnhancedVolcano", "ComplexHeatmap", "clusterProfiler", "org.Hs.eg.db", "org.Mm.eg.db", "org.Mmu.eg.db", "org.Rn.eg.db", "org.Ss.eg.db", "ReactomePA", "fgsea", "enrichplot", "multtest", "WGCNA", "hdWGCNA", "motifmatchr", "TFBSTools", "GenomicRanges", "JASPAR2020", "JASPAR2024", "EnsDb.Hsapiens.v86", "BSgenome.Hsapiens.UCSC.hg38", "BSgenome.Mmusculus.UCSC.mm10")
 
 # List of GitHub packages
 github_packages <- list(
