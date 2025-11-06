@@ -104,10 +104,10 @@ shinyUI(
         <h3> Launch VST-DAVis using R and GitHub </h3>
         <p> VST-DAVis were deposited under the GitHub repository: <a href='https://github.com/GudaLab/VST-DAVis'>https://github.com/GudaLab/VST-DAVis</a></p>
         <ul>
-        <li>R (>= 4.4.3)</li>
-        <li>RStudio (>= 2024.12.0)</li>
-        <li>Bioconductor (>= 3.20)</li>
-        <li>Shiny (>= 1.10.0)</li>
+        <li>R (>= 4.5.2)</li>
+        <li>RStudio (>= 2025.09.2)</li>
+        <li>Bioconductor (>= 3.22)</li>
+        <li>Shiny (>= 1.11.1)</li>
     </ul>
     <p><strong>Note:</strong> VST-DAVis has been tested with these versions. Using older R versions may cause installation errors. It is recommended to update R before installation.<br>
        Once R is open in the command line or in RStudio, users should run the following command in R to install the shiny package.<br><br></p>
@@ -155,7 +155,7 @@ tags$head(
  sidebarLayout(
    sidebarPanel(id="multiple_sidebar",
      actionButton("info_btn1", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "File upload and Stats"),
-     selectInput("multiple_sample_format", label = "Select Input format", choices = list("SpaceRanger h5 format and spatial image files" = "h5", "SpaceRanger Matrix, Feauture, Barcodes and spatial image files" ="MFB", "Example data to test the tool (GSE230207)"="exampledata" ), selected = "h5"),
+     selectInput("multiple_sample_format", label = "Select Input format", choices = list("SpaceRanger h5 format and spatial image files" = "h5", "SpaceRanger Matrix, Feature, Barcodes and spatial image files" ="MFB", "Example data to test the tool (GSE230207)"="exampledata" ), selected = "h5"),
      
      h5("Upload multiple samples, each in its own ZIP file"),
      fileInput("multiple_sample_file", label = "Upload multiple files at once (filtered_feature_bc_matrix.h5 and spatial image in zip format)", multiple = T, accept =".zip"),
@@ -199,8 +199,8 @@ tags$head(
              tags$b("SpaceRanger h5 format and spatial image files"),
              br(),
              
-             tags$a(href = "https://www.gudalab-rtools.net/GSM7476185.zip",
-                    "H5 File and spatial image files (Organism: Human)",
+             tags$a(href = "example_files/P1_ON1_A.zip",
+                    "H5 File and spatial image files (Organism: Human; GEO accession: GSM5591748)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br(),
@@ -208,8 +208,8 @@ tags$head(
              tags$b("SpaceRanger Matrix, Feature, Barcodes and spatial image files"),
              br(),
              
-             tags$a(href = "example_files/control_e14_3.zip",
-                    "Matrix, Feature, Barcodes and spatial image files (Organism: Mouse)",
+             tags$a(href = "example_files/control_e14_1.zip",
+                    "Matrix, Feature, Barcodes and spatial image files (Organism: Mouse; accession: GSM7804884)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br()
@@ -288,7 +288,7 @@ tabPanel(
     
     
     column(width =3, numericInput("multiple_sample_min_count", label = "Keep the minimum number of nFeature Spatial", value = 0)),
-    column(width =3, numericInput("multiple_sample_max_count", label = "Keep the maximum number of nFeature Spatial", value = 7500)),
+    column(width =3, numericInput("multiple_sample_max_count", label = "Keep the maximum number of nFeature Spatial", value = 10000)),
     column(width =3, numericInput("multiple_sample_max_mito_perc", label="Filter cells that have more than this percentage mitochondrial counts",  value = 5)),
     br(),
     br(),
@@ -1189,6 +1189,7 @@ tabPanel(
                   actionButton("info_btn13", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "Markers Identification"),
                   fluidRow(   
                     box(id = "m_subclustering_marker_box1",
+                        h5("Note: Please ensure you have more than one cluster before proceeding. If only a single cluster is present, subclustering will not work and downstream analyses will be unavailable. Select a different cluster or at least two clusters, then start subclustering again"),
                         h3("Markers identification or Differential expression analysis"),
                         column(6, selectInput("m_subclustering_marker1", label = "Select the analysis type", choices = c("Identify markers in all clusters" = 1, "Identify markers in one specific cluster" = 2, "Identify markers distinguishing a cluster from other cluster(s)" = 3, "Find conserved markers in one vs. all clusters" = 4, "Find conserved markers between two clusters" = 5), selected = 1)),
                     ),
@@ -2163,13 +2164,125 @@ tabPanel(
 <p><strong>Example Datasets:</strong></p>
 <p>To ensure seamless analysis and reproducibility, VST-DAVis includes one reference dataset for each input format, sourced from NCBI, which has been pre-tested with the tool. These datasets allow users to explore the tool's functionalities and understand the analysis workflow effectively.</p>
 <ul>
-  <li><strong>H5 File:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE230207'>GSE230207</a></li>
-  <li><strong>Matrix Files:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE244014'>GSE244014</a></li>
-  <li><strong>Example data to test the tool (TME_cold_vs_TME_hot_vs_TME_IME_vs_TME_IMS) from :</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?GSE230207'>GSE230207</a></li>
+  <li><strong>H5 File:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE184510'>GSE184510</a> (Organism: Human)</li>
+  <li><strong>Matrix Files:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE244014'>GSE244014</a> (Organism: Mouse) </li>
+  <li><strong>Example data to test the tool (TME_cold_vs_TME_hot_vs_TME_IME_vs_TME_IMS) from Human:</strong> <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE230207'>GSE230207</a></li>
 </ul>
 
 <hr>
-<h3>Step-by-Step Approach for User Interaction</h3>
+<h1>Estimated Runtime for Analysis Tabs</h1>
+<table border='1' cellspacing='0' cellpadding='6' style='border-collapse:collapse; width:100%;'>
+  <thead style='background-color:#f2f2f2;'>
+    <tr>
+      <th>Tab Name</th>
+      <th>Estimated Time</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Stats</td>
+      <td>1–2 minutes</td>
+      <td>Upload &amp; initial QC plots. H5 is faster; raw matrix takes longer.</td>
+    </tr>
+    <tr>
+      <td>Sample Groups &amp; QC Filtering</td>
+      <td>1–2 minutes</td>
+      <td>Depends on number of samples and filtering thresholds.</td>
+    </tr>
+    <tr>
+      <td>Normalization &amp; PCA</td>
+      <td>2–5 minutes</td>
+      <td>SCTransform takes longer than LogNormalize.</td>
+    </tr>
+    <tr>
+      <td>Clustering &amp; UMAP/tSNE</td>
+      <td>1–3 minutes</td>
+      <td>Slightly longer for large datasets or high resolution.</td>
+    </tr>
+    <tr>
+      <td>Marker Identification</td>
+      <td>1–3 minutes</td>
+      <td>Multiple clusters increase runtime (e.g., 10+ clusters).</td>
+    </tr>
+    <tr>
+      <td>Cell Type Prediction</td>
+      <td>2–15 minutes</td>
+      <td>ScType &amp; SingleR are fast; GPTCelltype depends on OpenAI API latency.</td>
+    </tr>
+    <tr>
+      <td>Cluster-Based Plots</td>
+      <td>&lt;1 minute</td>
+      <td>Faster for fewer genes and features.</td>
+    </tr>
+    <tr>
+      <td>Condition-Based DEG Analysis</td>
+      <td>1–2 minutes</td>
+      <td>Similar to marker detection; volcano plot adds a few seconds.</td>
+    </tr>
+    <tr>
+      <td>Subclustering</td>
+      <td>2–30 minutes</td>
+      <td>Includes filtering + reclustering a subset of cells. (Whole analysis)</td>
+    </tr>
+    <tr>
+      <td>Correlation Network</td>
+      <td>2–4 minutes</td>
+      <td>Larger clusters or using Kendall correlation may take longer.</td>
+    </tr>
+    <tr>
+      <td>GO Term Enrichment</td>
+      <td>1–3 minutes</td>
+      <td>Depends on number of DE genes and ontology selected.</td>
+    </tr>
+    <tr>
+      <td>Pathway Analysis</td>
+      <td>1–3 minutes</td>
+      <td>KEGG &amp; Reactome databases processed similarly.</td>
+    </tr>
+    <tr>
+      <td>GSEA Analysis</td>
+      <td>1–3 minutes</td>
+      <td>MSigDB categories vary in size; more permutations = longer time.</td>
+    </tr>
+    <tr>
+      <td>Cell-Cell Communication</td>
+      <td>5–60 minutes</td>
+      <td>One of the longest steps. Time depends on the number of groups &amp; PPI size.</td>
+    </tr>
+    <tr>
+      <td>Trajectory &amp; Pseudotime</td>
+      <td>5–60 minutes</td>
+      <td>UMAP-based; Monocle3 processing varies with complexity.</td>
+    </tr>
+    <tr>
+      <td>Co-expression Network (hdWGCNA)</td>
+      <td>15 minutes to 1 hour</td>
+      <td>Metacell and soft-thresholding steps are the most time-consuming.</td>
+    </tr>
+    <tr>
+      <td>TF Regulatory Network</td>
+      <td>30 minutes to 4 hours</td>
+      <td>Motif scanning + XGBoost modeling can be moderately slow.</td>
+    </tr>
+  </tbody>
+</table>
+ <strong>Additional Notes:</strong>
+  <ul>
+    <li>Smaller datasets (&lt;5k cells): Most steps complete in 5 minutes to 4 hours.</li>
+    <li>Larger datasets (&gt;50k cells): Some modules may exceed 10 minutes to 8 hours.</li>
+    <li>Most time-consuming modules:
+      <ul>
+        <li>SingleR</li>
+        <li>CellChat (Cell-Cell Communication)</li>
+        <li>Trajectory &amp; Pseudotime</li>
+        <li>hdWGCNA</li>
+        <li>TF Regulatory Network</li>
+      </ul>
+    </li>
+  </ul>
+<hr>
+<h3>Step-by-Step Approach for User Interaction using <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE230207'>GSE230207</a> Spatial single cell analysis of tumor microenvironment with 4 samples.</h3>
 <h3>1. Single or Multiple Samples Analysis</h3>
 	<h3>1.1 Stats</h3>
 <ul>
@@ -2749,7 +2862,7 @@ For a more focused analysis, users can select a specific signaling pathway from 
 <li>Violin Plot: Shows expression of pathway-associated genes <strong>(Fig. 7.2h)</strong>.</li>
 <li>Bar Plot: Shows the network analysis contribution in bar plot <strong>(Fig. 7.2i)</strong>.</li>	
 <li>Signaling Pathway Table: Contains source, target, ligand, receptor, and interaction details for the specific pathway <strong>(Fig. 7.2j)</strong>.</li>
-<img src='images/7.2.jpg' width='800' height='700' alt=''/>
+<img src='images/7.2.jpg' width='800' height='775' alt=''/>
 </ul>
 </li>
 </ul>
@@ -2822,13 +2935,13 @@ To explore gene expression dynamics along the pseudotime trajectory, users can a
 </li>
 <li><strong>Output:</strong>
 <ul>
-<li>Pseudotime Plot of Cells: Visual representation of cells in pseudotime with associated gene expression <strong>(Fig. 8g)</strong>.</li>
-<li>Summary Table: Lists genes with dynamic functional changes along pseudotime <strong>(Fig. 8h)</strong>.</li>
+<li>Pseudotime Plot of Cells: Visual representation of cells in pseudotime with associated gene expression <strong>(Fig. 8g,h)</strong>.</li>
+<li>Summary Table: Lists genes with dynamic functional changes along pseudotime <strong>(Fig. 8i)</strong>.</li>
 </ul>
 </li>
 </ul>
 <h3>8.4. Plotting Gene Expression in Pseudotime</h3>
-Users can visualize specific genes to observe their expression patterns over pseudotime: <strong>(Fig. 8i)</strong>
+Users can visualize specific genes to observe their expression patterns over pseudotime: <strong>(Fig. 8j)</strong>
 <ul>
 <li><strong>Gene Selection: </strong>
   <ul>
@@ -2838,7 +2951,7 @@ Users can visualize specific genes to observe their expression patterns over pse
 </li>
     <li><strong>Output: </strong>
       <ul>
-        <li>Creates a feature plot to display gene expression across cells in pseudotime <strong>(Fig. 8j)</strong>.</li>
+        <li>Creates a feature plot to display gene expression across cells in pseudotime <strong>(Fig. 8k,l)</strong>.</li>
 		 <img src='images/8.1.jpg' width='800' height='650' alt=''/>
       </ul>
   </li>
@@ -2958,7 +3071,7 @@ Transcription Factor (TF) Regulatory Network Analysis in VST-DAVis employs the h
 <ul>
 <li>Module Regulatory Network Plots: Positive, negative, and combined regulatory network plots. Visualize TF-to-target relationships categorized by regulatory effects <strong>(Fig. 9.2.1b-e)</strong>.</li>
 <li>Regulated Scores Table: Comprehensive list of TFs and their downstream targets <strong>(Fig. 9.2.1f)</strong>.</li>
-	<img src='images/9.2.1.jpg' width='800' height='700' alt=''/>
+	<img src='images/9.2.1.jpg' width='800' height='600' alt=''/>
 </ul>
 </li>
 <li><strong>TF-Specific Visualizations:</strong><br>
@@ -2972,7 +3085,7 @@ Unravel regulatory mechanisms governing gene expression in cellular contexts. Id
 <li>UMAP Plots: Spatial distribution of the TF <strong>(Fig. 9.2.2b)</strong>.</li>
 <li>Bar Plots: Contribution of the TF across modules <strong>(Fig. 9.2.2c)</strong>.</li>
 <li>Network Plots: Positive, negative, and combined networks, with primary, secondary and tertiary targets <strong>(Fig. 9.2.2d-f)</strong>.</li>
-<img src='images/9.2.2.jpg' width='800' height='700' alt=''/>
+<img src='images/9.2.2.jpg' width='800' height='600' alt=''/>
 </ul>
 </li>
 </ul>
@@ -2984,9 +3097,15 @@ This functionality provides a comprehensive view of transcriptional regulation i
          ") 
   ),
 ),
-
-
-
+# --- UI ---
+tabPanel(
+  "Session Info",
+  tags$h4("R Session"),
+  downloadBttn("download_sess", "Download session-info.txt"),
+  br(),
+  withSpinner(verbatimTextOutput("sess")),
+  
+),
 
 
 

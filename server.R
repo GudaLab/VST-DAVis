@@ -22,7 +22,29 @@ server <- function(input, output, session) {
     output$view_count <- renderText(format(current, big.mark = ","))
   }, once = TRUE)
   
- 
+ ######session info
+  
+  # --- server ---
+  # Show session info in the tab and enable download as .txt
+  sess_txt <- reactive({
+    paste(capture.output(utils::sessionInfo()), collapse = "\n")
+  })
+  
+  output$sess <- renderPrint({
+    cat(sess_txt())
+  })
+  
+  output$download_sess <- downloadHandler(
+    filename = function() {
+      paste0("VST-DAVis_session-info_", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), ".txt")
+    },
+    content = function(file) {
+      writeLines(sess_txt(), con = file, useBytes = TRUE)
+    }
+  )
+  
+  
+  
 ############################################################################################################################################################
                                                                   ##    Multiple Input     ##
 ############################################################################################################################################################
@@ -5944,7 +5966,7 @@ server <- function(input, output, session) {
 <li><b>Group 5 Name</b> (Default: Group5) – Type the group name.</li>
 <li><b>Group 6 Name</b> (Default: Group6) – Type the group name.</li>
 <li><b>Min gene count per cell</b> (Default: 0) – Filters out cells with fewer than this number of genes expressed. [Recommended: 200 to 500].</li>
-<li><b>Max gene count per cell</b> (Default: 7500) – Filters out cells with more than this number of genes expressed. [Recommended: 5000 to 7500].</li>
+<li><b>Max gene count per cell</b> (Default: 10000) – Filters out cells with more than this number of genes expressed. [Recommended: 5000 to 10000].</li>
 <li><b>Max mitochondrial %</b> (Default: 5) – Removes cells with excessive mitochondrial gene expression, often indicating low-quality or dying cells. [Recommended: <10%].</li>
     </ul>
     "),
