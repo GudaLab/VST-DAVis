@@ -6117,7 +6117,7 @@ server <- function(input, output, session) {
       <li><b>Normalization method</b>,(Default: SCTransform), or LogNormalize. </li>
       <li><b>Scale factor</b> (Default: 10000, Min: 1, Max: 1e6) – Scale factor used in LogNormalize method for total expression normalization.</li>
 <li><b>Variable gene method</b> (Default: vst) – Method for selecting variable features: vst (default), mean.var.plot, or dispersion.</li>
-<li><b>Number of variable genes</b> (Default: 2000, Min: 100, Max: 10000) – Number of top variable genes to retain for downstream analysis.</li>
+<li><b>Number of variable genes</b> (Default: 1000, Min: 100, Max: 10000) – Number of top variable genes to retain for downstream analysis.</li>
 <li><b>PCA dimensions</b> (Default: 30, Min: 2, Max: 100) – Number of principal components computed for dimensionality reduction.</li>
 
 </ul>
@@ -6285,7 +6285,7 @@ server <- function(input, output, session) {
 <li><b>Celltype method</b> (Default: Seurat clusters) – Clustering source for gene selection. (Seurat clusters or predicted).</li>
 <li><b>Select one or multiple cluster(s) for analsysis</b> (Default:0) – Select one or multiple clusters.</li>
 <li><b>Organism</b> (Default: Homo sapiens) – Species-specific gene set database. (Homo sapiens, Mus musculus).</li>
-<li><b>MSigDB category</b> (Default: Hallmark gene sets (H)) – Gene set collection from MSigDB. (H, C1, C2, C3, C4, C5, C6, C7, C8).</li>
+<li><b>MSigDB category</b> (Default: Curated gene sets (C2)) – Gene set collection from MSigDB. (H, C1, C2, C3, C4, C5, C6, C7, C8).</li>
 <li><b>ScoreType</b> (Default: std) – Controls whether to score all, positive or negative enrichment. (std, pos, neg.).</li>
 <li><b>Minimal gene size</b> (Default: 15, Min: 5, Max: 500) – Minimum genes per gene set.</li>
 <li><b>Maximal gene size</b> (Default: 50, Min: 15, Max: 5000) – Maximum genes per gene set.</li>

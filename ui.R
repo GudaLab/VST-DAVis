@@ -208,8 +208,8 @@ tags$head(
              tags$b("SpaceRanger Matrix, Feature, Barcodes and spatial image files"),
              br(),
              
-             tags$a(href = "example_files/control_e14_1.zip",
-                    "Matrix, Feature, Barcodes and spatial image files (Organism: Mouse; accession: GSM7804884)",
+             tags$a(href = "https://www.gudalab-rtools.net/VST-DAVis/example_files/control_e14_2.zip",
+                    "Matrix, Feature, Barcodes and spatial image files (Organism: Mouse; accession: GSM7804885)",
                     style = "color:red;",
                     download = NA, target = "_blank"),
              br()
@@ -2262,14 +2262,14 @@ tabPanel(
     </tr>
     <tr>
       <td>TF Regulatory Network</td>
-      <td>30 minutes to 4 hours</td>
-      <td>Motif scanning + XGBoost modeling can be moderately slow.</td>
+      <td>30 minutes to 5 hours</td>
+      <td>Motif scanning + XGBoost modeling can be moderately slow and most time-consuming.</td>
     </tr>
   </tbody>
 </table>
  <strong>Additional Notes:</strong>
   <ul>
-    <li>Smaller datasets (&lt;5k cells): Most steps complete in 5 minutes to 4 hours.</li>
+    <li>Smaller datasets (&lt;5k cells): Most steps complete in 5 minutes to 5 hours.</li>
     <li>Larger datasets (&gt;50k cells): Some modules may exceed 10 minutes to 8 hours.</li>
     <li>Most time-consuming modules:
       <ul>
