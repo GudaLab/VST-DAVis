@@ -141,8 +141,8 @@ These datasets are ideal for:
 Users can download these datasets directly from the provided links and use them to explore VST-DAVis. Users who download sample files from NCBI or other public repositories need to rename and organize their files to match the Space Ranger output format, which is required by our application.
 
 So We have also included example datasets in both supported formats to guide users:
-- H5 + Spatial folder format [P1_ON1_A.zip](https://github.com/GudaLab/VST-DAVis/blob/main/www/example_files/P1_ON1_A.zip)(Organism: Human; GEO accession: GSM5591748)
-- Space Ranger Matrix, Feature, Barcode, and Spatial image files format [control_e14_2.zip](https://www.gudalab-rtools.net/VST-DAVis/example_files/control_e14_2.zip)(Organism: Mouse; accession: GSM7804885)
+- H5 + Spatial folder format [P1_ON1_A.zip](https://github.com/GudaLab/VST-DAVis/blob/main/www/example_files/P1_ON1_A.zip) (Organism: Human; GEO accession: GSM5591748)
+- Space Ranger Matrix, Feature, Barcode, and Spatial image files format [control_e14_2.zip](https://www.gudalab-rtools.net/VST-DAVis/example_files/control_e14_2.zip) (Organism: Mouse; accession: GSM7804885)
 
 Users can download and extract these example files directly from the GitHub repository or from the upload page of the application. This will help users correctly format their data and ensure full compatibility with our tool.
 
