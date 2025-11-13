@@ -34,8 +34,8 @@ if (!require("xgboost"))install.packages("xgboost")
 if (!require("Seurat")) install.packages("Seurat")
 if (!require("msigdbr"))install.packages("msigdbr")
 if (!require("msigdbdf"))install.packages("msigdbdf", repos = "https://igordot.r-universe.dev")
+if (!require("SeuratObject")) install.packages("SeuratObject", update = FALSE)
 if (!require("BiocManager")) install.packages("BiocManager", update = FALSE)
-if (!require("SeuratObject")) BiocManager::install("SeuratObject", update = FALSE)
 if (!require("sctransform")) BiocManager::install("sctransform", update = FALSE)
 if (!require("celldex")) BiocManager::install("celldex", update = FALSE)
 if (!require("SingleR")) BiocManager::install("SingleR", update = FALSE)
@@ -147,4 +147,5 @@ increment_count <- function() {
   saveRDS(n, count_file)
   n
 }
+
 
