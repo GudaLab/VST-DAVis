@@ -150,3 +150,6 @@ Users can download and extract these example files directly from the GitHub repo
 ## Tested Platforms
 
 This application was tested on: Linux (Red Hat and Ubuntu) and Windows (10 and 11)
+
+## Citation
+Jagadesan S, Guda C, VST-DAVis: an R Shiny application and web-browser for spatial transcriptomics data analysis and visualization, Bioinformatics Advances, Volume 6, Issue 1, 2026, vbag007 (https://doi.org/10.1093/bioadv/vbag007).
