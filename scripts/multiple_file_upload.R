@@ -122,7 +122,10 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
   # --- Proceed with downstream processing ---
   merged_spatial <- merge(spatial_objects[[1]], y = spatial_objects[-1],
                           add.cell.ids = names(spatial_objects), project = "merged")
-  merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
+  #merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = "^MT-")
+  mt_pat <- if (any(grepl("^MT-", rownames(merged_spatial[["Spatial"]]))) ) "^MT-" else "^mt-"
+  merged_spatial[["percent.mt"]] <- PercentageFeatureSet(merged_spatial, pattern = mt_pat, assay = "Spatial")
+  merged_spatial$percent.mt[is.na(merged_spatial$percent.mt)] <- 0
   Idents(merged_spatial) <- merged_spatial@meta.data$orig.ident
   
   table1 <- table(merged_spatial$orig.ident) %>% as.data.frame()
