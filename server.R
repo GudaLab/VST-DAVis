@@ -5258,7 +5258,7 @@ server <- function(input, output, session) {
         clusters <- req(datainput_multiple_celltype_level()[[2]])
         shinyWidgets::pickerInput(
           inputId = "s_hdwgcna3",
-          label = "Select one or multiple cluster(s) for analsysis",
+          label = "Select one cluster for analsysis",
           choices = sort(clusters),
           selected = sort(clusters)[1],
           multiple = F,
@@ -5270,7 +5270,7 @@ server <- function(input, output, session) {
         clusters <- req(datainput_multiple_celltype_level()[[3]])
         shinyWidgets::pickerInput(
           inputId = "s_hdwgcna3",
-          label = "Select one or multiple cluster(s) for analsysis",
+          label = "Select one cluster for analsysis",
           choices = sort(clusters),
           selected = sort(clusters)[1],
           multiple = F,
@@ -5282,7 +5282,7 @@ server <- function(input, output, session) {
         clusters <- req(datainput_subclustering_multiple_celltype_level()[[2]])
         shinyWidgets::pickerInput(
           inputId = "s_hdwgcna3",
-          label = "Select one or multiple cluster(s) for analsysis",
+          label = "Select one cluster for analsysis",
           choices = sort(clusters),
           selected = sort(clusters)[1],
           multiple = F,
@@ -5294,7 +5294,7 @@ server <- function(input, output, session) {
         clusters <- req(datainput_subclustering_multiple_celltype_level()[[3]])
         shinyWidgets::pickerInput(
           inputId = "s_hdwgcna3",
-          label = "Select one or multiple cluster(s) for analsysis",
+          label = "Select one cluster for analsysis",
           choices = sort(clusters),
           selected = sort(clusters)[1],
           multiple = F,
