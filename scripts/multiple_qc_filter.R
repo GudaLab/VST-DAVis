@@ -93,7 +93,7 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input, index_multiple
     groups_table2 <- table(group1_vs_group2_vs_group3$condition) %>% as.data.frame
     colnames(groups_table2) <- c("Groups", "Cell counts before QC")
     group1_vs_group2_vs_group3[["percent.mt"]] <- PercentageFeatureSet(group1_vs_group2_vs_group3, pattern = "^MT-")
-    groups_merged <- subset(group1_vs_group2_vs_group3, nFeature_Spatial > index_multiple_sample_min_count & nCount_Spatial & percent.mt < index_multiple_sample_max_mito_perc)
+    groups_merged <- subset(group1_vs_group2_vs_group3,  subset = nFeature_Spatial > index_multiple_sample_min_count & nCount_Spatial & percent.mt < index_multiple_sample_max_mito_perc)
     groups_table3 <- table(groups_merged$orig.ident) %>% as.data.frame
     colnames(groups_table3) <- c("Samples", "Cell counts after QC")
     groups_table4 <- table(groups_merged$condition) %>% as.data.frame
@@ -265,10 +265,10 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input, index_multiple
      colnames(group_count_bar) <- c("Groups", "variable", "Cell_counts")  
    }
    
-  plots6 <- VlnPlot(groups_merged, features = "nFeature_Spatial", ncol = 1)
-  plots7 <- VlnPlot(groups_merged, features = "nCount_Spatial", ncol = 1)
-  plots8 <- VlnPlot(groups_merged, features = "percent.mt", ncol = 1)
-  plots9 <- VlnPlot(groups_merged, features = c("nFeature_Spatial", "nCount_Spatial", "percent.mt"), ncol = 1, group.by = "condition")
+  plots6 <- VlnPlot(groups_merged, features = "nFeature_Spatial", ncol = 1, raster = FALSE)
+  plots7 <- VlnPlot(groups_merged, features = "nCount_Spatial", ncol = 1, raster = FALSE)
+  plots8 <- VlnPlot(groups_merged, features = "percent.mt", ncol = 1, raster = FALSE)
+  plots9 <- VlnPlot(groups_merged, features = c("nFeature_Spatial", "nCount_Spatial", "percent.mt"), ncol = 1, group.by = "condition", raster = FALSE)
   
   plots12 <- SpatialFeaturePlot(groups_merged, features = c("nFeature_Spatial", "nCount_Spatial", "percent.mt")) 
   
