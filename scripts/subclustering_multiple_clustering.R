@@ -39,12 +39,29 @@ datainput_subclustering_multiple_clustering <- function(
   sobj <- index_subclustering_multiple_clustering_input
   if (is.null(sobj@meta.data$condition))   sobj$condition   <- "condition_1"
   if (is.null(sobj@meta.data$orig.ident))  sobj$orig.ident  <- sobj$orig.ident %||% "sample_1"
+
+  get_reductions <- function(object) {
+    tryCatch(Seurat::Reductions(object), error = function(e) character(0))
+  }
+  pick_clustering_reduction <- function(object) {
+    if ("harmony" %in% get_reductions(object)) "harmony" else "pca"
+  }
+  safe_dims <- function(object, reduction, requested_dims) {
+    requested_dims <- as.integer(requested_dims)
+    if (is.na(requested_dims) || requested_dims < 1) requested_dims <- 1
+    embeddings <- tryCatch(Seurat::Embeddings(object, reduction = reduction), error = function(e) NULL)
+    available_dims <- if (is.null(embeddings)) requested_dims else ncol(embeddings)
+    seq_len(max(1, min(requested_dims, available_dims)))
+  }
+  clustering_reduction <- pick_clustering_reduction(sobj)
+  neighbor_dims <- safe_dims(sobj, clustering_reduction, index_m_subclustering_clustering1)
   
   # ---- Graph-based clustering ----
   # If you intend to use Annoy's n.trees, set nn.method="annoy"
   sobj <- FindNeighbors(
     sobj,
-    dims = 1:index_m_subclustering_clustering1,
+    reduction = clustering_reduction,
+    dims = neighbor_dims,
     k.param = index_m_subclustering_clustering2,
     # Uncomment next line if you rely on n.trees via annoy:
     # nn.method = "annoy",
@@ -75,9 +92,11 @@ datainput_subclustering_multiple_clustering <- function(
   label_size <- if (label_flag) 3.5 else 0
   
   if (reduction_choice == "umap") {
+    umap_dims <- safe_dims(sobj, clustering_reduction, index_m_subclustering_clustering7)
     sobj <- RunUMAP(
       sobj,
-      dims        = 1:index_m_subclustering_clustering7,
+      reduction   = clustering_reduction,
+      dims        = umap_dims,
       n.neighbors = index_m_subclustering_clustering8,
       min.dist    = index_m_subclustering_clustering9
     )
@@ -102,7 +121,8 @@ datainput_subclustering_multiple_clustering <- function(
                        split.by = "seurat_clusters", ncol = 6)
     
   } else {
-    sobj <- RunTSNE(sobj, dims = 1:index_m_subclustering_clustering11)
+    tsne_dims <- safe_dims(sobj, clustering_reduction, index_m_subclustering_clustering11)
+    sobj <- RunTSNE(sobj, reduction = clustering_reduction, dims = tsne_dims)
     
     plots16 <- DimPlot(sobj, reduction = "tsne", label = label_flag, label.size = 3.5,
                        raster = FALSE, group.by = "seurat_clusters")

@@ -1,4 +1,5 @@
 datainput_subclustering_multiple_sample <- function(index_subclustering_multiple_sample_file, index_subclustering_multiple_sample_celltype, index_m_subclustering_4, index_m_subclustering_5, index_m_subclustering1, index_m_subclustering2, index_m_subclustering3){
+  source_app_script("scripts/assay_utils.R")
   multiple_sample_clustering  <- index_subclustering_multiple_sample_file
   
   if (index_m_subclustering1 == "seurat_clusters"){
@@ -41,7 +42,7 @@ datainput_subclustering_multiple_sample <- function(index_subclustering_multiple
     }
     
     # Access normalized data properly using GetAssayData
-    expr_data <- GetAssayData(multiple_sample_clustering, assay = "RNA", layer = "counts")
+    expr_data <- get_assay_layer_matrix(multiple_sample_clustering, assay = "RNA", layer = "counts")
     
     # Select cells (OR condition: at least one gene above threshold)
     selected_cells_or <- colnames(expr_data)[
@@ -64,7 +65,7 @@ if(length(valid_genes) == 0){
 }
 
 # Access normalized data properly using GetAssayData
-expr_data <- GetAssayData(multiple_sample_clustering, assay = "RNA", layer = "counts")
+expr_data <- get_assay_layer_matrix(multiple_sample_clustering, assay = "RNA", layer = "counts")
 
 # Select cells (OR condition: at least one gene above threshold)
 selected_cells_or <- colnames(expr_data)[

@@ -2,10 +2,35 @@ library(motifmatchr)
 library(TFBSTools)
 
 datainput_single_multiple_sample_tfrn1<- function(index_multiple_sample_tfrn1_input, index_s_tfrn1, index_s_tfrn2, index_s_tfrn3, index_s_tfrn4, index_s_tfrn5, index_s_tfrn6, index_s_tfrn7, index_s_tfrn8){
+  get_jaspar_db <- function() {
+    jaspar_pkgs <- c("JASPAR2024", "JASPAR2020")
+
+    for (pkg in jaspar_pkgs) {
+      if (requireNamespace(pkg, quietly = TRUE)) {
+        db_env <- new.env(parent = emptyenv())
+        tryCatch(utils::data(list = pkg, package = pkg, envir = db_env), error = function(e) NULL)
+        db_obj <- get0(pkg, envir = db_env, inherits = FALSE)
+
+        if (is.null(db_obj)) {
+          db_obj <- tryCatch(get(pkg, envir = asNamespace(pkg)), error = function(e) NULL)
+        }
+
+        if (!is.null(db_obj) && !is.function(db_obj)) {
+          return(db_obj)
+        }
+      }
+    }
+
+    stop("Neither JASPAR2024 nor JASPAR2020 could be loaded. Please install one of these Bioconductor packages.")
+  }
 
   single_multiple_sample_clustering <- index_multiple_sample_tfrn1_input
   
-  pfm_core <- TFBSTools::getMatrixSet(x = JASPAR2020, opts = list(collection = "CORE", tax_group = 'vertebrates', all_versions = FALSE))
+  jaspar_db <- get_jaspar_db()
+  pfm_core <- TFBSTools::getMatrixSet(
+    x = jaspar_db,
+    opts = list(collection = "CORE", tax_group = "vertebrates", all_versions = FALSE)
+  )
   
   #Construct TF Regulatory Network
   # run the motif scan

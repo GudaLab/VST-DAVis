@@ -1,6 +1,8 @@
 # updated 1/31/2020 to accommodate V3.1
 # updated 2/4/2020 to output "NA" for genes not detected in certain subgroups
 
+source_app_script("scripts/assay_utils.R")
+
 PrctCellExpringGene <- function(object, genes, group.by = "all"){
   if(group.by == "all"){
     prct = unlist(lapply(genes,calc_helper,object=object))
@@ -23,7 +25,7 @@ PrctCellExpringGene <- function(object, genes, group.by = "all"){
 }
 
 calc_helper <- function(object,genes){
-  counts = object[['RNA']]@counts
+  counts = get_assay_layer_matrix(object, assay = "RNA", layer = "counts")
   #counts = object[['integrated']]$counts
   ncells = ncol(counts)
   if(genes %in% row.names(counts)){
@@ -33,7 +35,7 @@ calc_helper <- function(object,genes){
 }
 
 calc_helper1 <- function(object,genes){
-  counts = object[['RNA']]@counts
+  counts = get_assay_layer_matrix(object, assay = "RNA", layer = "counts")
   #counts = object[['integrated']]$counts
   ncells = ncol(counts)
   if(genes %in% row.names(counts)){

@@ -55,6 +55,102 @@ suppressPackageStartupMessages({
   stats
 }
 
+.normalize_msigdb_collection <- function(species, collection){
+  if (is.null(collection) || !nzchar(collection)) {
+    return(if (species == "Mus musculus") "M2" else "C2")
+  }
+
+  human_to_mouse <- c(H = "MH", C1 = "M1", C2 = "M2", C3 = "M3", C5 = "M5", C7 = "M7", C8 = "M8")
+  mouse_to_human <- stats::setNames(names(human_to_mouse), human_to_mouse)
+
+  if (species == "Mus musculus") {
+    if (collection %in% names(human_to_mouse)) {
+      collection <- unname(human_to_mouse[[collection]])
+    }
+
+    valid_collections <- c("MH", "M1", "M2", "M3", "M5", "M7", "M8")
+    if (!collection %in% valid_collections) {
+      stop(
+        "Mouse MSigDB supports the collections MH, M1, M2, M3, M5, M7, and M8. ",
+        "Please choose one of those collections for mouse GSEA."
+      )
+    }
+
+    return(collection)
+  }
+
+  if (collection %in% names(mouse_to_human)) {
+    collection <- unname(mouse_to_human[[collection]])
+  }
+
+  valid_collections <- c("H", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9")
+  if (!collection %in% valid_collections) {
+    stop(
+      "Human MSigDB supports the collections H, C1, C2, C3, C4, C5, C6, C7, C8, and C9. ",
+      "Please choose one of those collections for human GSEA."
+    )
+  }
+
+  collection
+}
+
+.legacy_msigdb_collection <- function(species, collection) {
+  mouse_to_human <- c(MH = "H", M1 = "C1", M2 = "C2", M3 = "C3", M5 = "C5", M7 = "C7", M8 = "C8")
+
+  if (species == "Mus musculus" && collection %in% names(mouse_to_human)) {
+    return(unname(mouse_to_human[[collection]]))
+  }
+
+  collection
+}
+
+.load_msigdb_gene_sets <- function(species, collection) {
+  db_species <- if (species == "Mus musculus") "MM" else "HS"
+
+  primary_result <- tryCatch(
+    msigdbr::msigdbr(
+      species = species,
+      db_species = db_species,
+      collection = collection
+    ),
+    error = function(e) e
+  )
+
+  if (!inherits(primary_result, "error") && nrow(primary_result) > 0) {
+    return(primary_result)
+  }
+
+  legacy_collection <- .legacy_msigdb_collection(species, collection)
+  fallback_result <- tryCatch(
+    {
+      if ("db_species" %in% names(formals(msigdbr::msigdbr))) {
+        msigdbr::msigdbr(
+          species = species,
+          collection = legacy_collection
+        )
+      } else {
+        msigdbr::msigdbr(
+          species = species,
+          category = legacy_collection
+        )
+      }
+    },
+    error = function(e) e
+  )
+
+  if (inherits(fallback_result, "error") || nrow(fallback_result) == 0) {
+    primary_message <- if (inherits(primary_result, "error")) conditionMessage(primary_result) else "No gene sets were returned."
+    fallback_message <- if (inherits(fallback_result, "error")) conditionMessage(fallback_result) else "No gene sets were returned."
+    stop(
+      "Could not load MSigDB gene sets for species '", species, "' and collection '", collection, "'. ",
+      "Primary attempt: ", primary_message, " ",
+      "Fallback attempt: ", fallback_message
+    )
+  }
+
+  fallback_result
+}
+
 ## ====== main function ======
 
 datainput_single_multiple_sample_gsea <- function(
@@ -203,8 +299,8 @@ datainput_single_multiple_sample_gsea <- function(
   gene_ranking <- sort(gene_ranking, decreasing = TRUE)
 
   # ----------------- get gene sets -----------------
-  # index_s_gsea6 should be an MSigDB category (e.g. "H", "C2", "C5", "C7", etc.)
-  msigdb_gene_sets <- msigdbr(species = index_s_gsea5, category = index_s_gsea6)
+  msigdb_collection <- .normalize_msigdb_collection(index_s_gsea5, index_s_gsea6)
+  msigdb_gene_sets <- .load_msigdb_gene_sets(index_s_gsea5, msigdb_collection)
   gene_sets <- split(msigdb_gene_sets$gene_symbol, msigdb_gene_sets$gs_name)
 
   # ----------------- run fgsea -----------------

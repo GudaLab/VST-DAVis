@@ -1,7 +1,144 @@
 datainput_single_multiple_sample_cellchat1<- function(index_multiple_sample_cellchat1_input, index_subclustering_multiple_sample_cellchat1_input, index_multiple_sample_cellchat1_input2, index_subclustering_multiple_sample_cellchat1_input2, index_multiple_sample_normalization_method_cellchat1, index_subclustering_multiple_sample_normalization_method_cellchat1, index_s_cellchat1, index_s_cellchat2, index_s_cellchat3, index_s_cellchat4, index_s_cellchat5, index_s_cellchat6, index_s_cellchat7, index_s_cellchat8, index_s_cellchat9, index_s_cellchat10, index_s_cellchat13, index_s_cellchat14, index_s_cellchat15, index_s_cellchat16, index_s_cellchat17){
+  suppressPackageStartupMessages(require("ggalluvial", character.only = TRUE, quietly = TRUE))
   index_s_cellchat10 <- as.logical(index_s_cellchat10)
   index_s_cellchat13 <- as.logical(index_s_cellchat13)
   index_s_cellchat16 <- as.logical(index_s_cellchat16)
+  index_s_cellchat9 <- suppressWarnings(as.integer(index_s_cellchat9))
+  if (is.na(index_s_cellchat9) || index_s_cellchat9 < 1) {
+    index_s_cellchat9 <- 2L
+  }
+
+  make_info_plot <- function(label_text) {
+    ggplot2::ggplot(data.frame(x = 1, y = 1, label = label_text), ggplot2::aes(x = x, y = y, label = label)) +
+      ggplot2::geom_text(lineheight = 1.1, size = 4) +
+      ggplot2::theme_void() +
+      ggplot2::xlim(0.5, 1.5) +
+      ggplot2::ylim(0.5, 1.5)
+  }
+
+  scale_pattern_matrix <- function(mat, margin = c("r1", "c1")) {
+    margin <- match.arg(margin)
+    mat <- as.matrix(mat)
+
+    if (margin == "r1") {
+      denom <- rowSums(mat, na.rm = TRUE)
+      denom[!is.finite(denom) | denom == 0] <- 1
+      return(sweep(mat, 1, denom, "/", check.margin = FALSE))
+    }
+
+    denom <- colSums(mat, na.rm = TRUE)
+    denom[!is.finite(denom) | denom == 0] <- 1
+    sweep(mat, 2, denom, "/", check.margin = FALSE)
+  }
+
+  safe_identify_communication_patterns <- function(object, pattern_name, k_value, slot.name = "netP") {
+    pattern_name <- match.arg(pattern_name, c("incoming", "outgoing"))
+    suppressPackageStartupMessages(require("NMF", character.only = TRUE, quietly = TRUE))
+    prob <- methods::slot(object, slot.name)$prob
+
+    if (pattern_name == "outgoing") {
+      data_sender <- apply(prob, c(1, 3), sum)
+      data_sender <- sweep(
+        data_sender,
+        2L,
+        apply(data_sender, 2, function(x) max(x, na.rm = TRUE)),
+        "/",
+        check.margin = FALSE
+      )
+      data0 <- as.matrix(data_sender)
+    } else {
+      data_receiver <- apply(prob, c(2, 3), sum)
+      data_receiver <- sweep(
+        data_receiver,
+        2L,
+        apply(data_receiver, 2, function(x) max(x, na.rm = TRUE)),
+        "/",
+        check.margin = FALSE
+      )
+      data0 <- as.matrix(data_receiver)
+    }
+
+    data <- data0[rowSums(data0, na.rm = TRUE) != 0, , drop = FALSE]
+    if (nrow(data) == 0 || ncol(data) == 0) {
+      stop(sprintf("No non-zero signaling matrix is available for %s pattern analysis.", pattern_name))
+    }
+
+    max_rank <- min(nrow(data), ncol(data))
+    if (!is.finite(max_rank) || max_rank < 1) {
+      stop(sprintf("No valid NMF rank is available for %s pattern analysis.", pattern_name))
+    }
+
+    k_use <- min(as.integer(k_value), as.integer(max_rank))
+    unique_row_count <- nrow(unique(as.data.frame(data)))
+    if (is.finite(unique_row_count) && unique_row_count >= 1) {
+      k_use <- min(k_use, as.integer(unique_row_count))
+    }
+    if (k_use < 1) {
+      stop(sprintf("The requested pattern rank is invalid for %s pattern analysis.", pattern_name))
+    }
+
+    if (k_use != as.integer(k_value)) {
+      message(sprintf("CellChat %s pattern rank reduced from %d to %d to match the available signaling matrix.", pattern_name, as.integer(k_value), k_use))
+    }
+
+    nmf_fit <- tryCatch(
+      NMF::nmf(data, rank = k_use, method = "lee", seed = "nndsvd"),
+      error = function(e1) {
+        message(sprintf("CellChat %s pattern NMF fallback 1: %s", pattern_name, conditionMessage(e1)))
+        tryCatch(
+          NMF::nmf(data, rank = k_use, method = "lee", seed = 123456L),
+          error = function(e2) {
+            message(sprintf("CellChat %s pattern NMF fallback 2: %s", pattern_name, conditionMessage(e2)))
+            tryCatch(
+              NMF::nmf(data, rank = k_use, method = "brunet", seed = 123456L),
+              error = function(e3) {
+                message(sprintf("CellChat %s pattern NMF fallback 3: %s", pattern_name, conditionMessage(e3)))
+                NULL
+              }
+            )
+          }
+        )
+      }
+    )
+
+    if (inherits(nmf_fit, "NMFfit")) {
+      W <- scale_pattern_matrix(nmf_fit@fit@W, "r1")
+      H <- scale_pattern_matrix(nmf_fit@fit@H, "c1")
+    } else {
+      km_fit <- stats::kmeans(data, centers = k_use, nstart = max(10L, k_use * 5L), iter.max = 200)
+      W <- matrix(0, nrow = nrow(data), ncol = k_use)
+      W[cbind(seq_len(nrow(data)), km_fit$cluster)] <- 1
+      rownames(W) <- rownames(data)
+      H <- scale_pattern_matrix(km_fit$centers, "c1")
+      message(sprintf("CellChat %s pattern analysis used k-means fallback because NMF fitting was unavailable.", pattern_name))
+    }
+
+    if (is.null(rownames(W))) {
+      rownames(W) <- rownames(data)
+    }
+    colnames(W) <- paste0("Pattern ", seq_len(ncol(W)))
+    if (is.null(colnames(H))) {
+      colnames(H) <- colnames(data)
+    }
+    rownames(H) <- paste0("Pattern ", seq_len(nrow(H)))
+
+    data_W <- as.data.frame(as.table(W))
+    colnames(data_W) <- c("CellGroup", "Pattern", "Contribution")
+    data_H <- as.data.frame(as.table(H))
+    colnames(data_H) <- c("Pattern", "Signaling", "Contribution")
+
+    methods::slot(object, slot.name)$pattern[[pattern_name]] <- list(
+      data = data0,
+      pattern = list(cell = data_W, signaling = data_H)
+    )
+
+    object
+  }
+
+  has_pattern_result <- function(object, pattern_name, slot.name = "netP") {
+    pattern_res <- tryCatch(methods::slot(object, slot.name)$pattern[[pattern_name]], error = function(e) NULL)
+    !is.null(pattern_res) && !is.null(pattern_res$pattern)
+  }
   
   if (index_s_cellchat1 == "multiple_sample" & index_s_cellchat2 == "seurat_clusters"){
     single_multiple_sample_clustering <- index_multiple_sample_cellchat1_input 
@@ -102,7 +239,7 @@ datainput_single_multiple_sample_cellchat1<- function(index_multiple_sample_cell
   }
   
   else if (index_s_cellchat1 == "multiple_sample_subclustering" & index_s_cellchat2 == "seurat_clusters"){
-    single_multiple_sample_clustering <- index_subclustering_multiple_cellchat1_sample_input  
+    single_multiple_sample_clustering <- index_subclustering_multiple_sample_cellchat1_input  
     current_clusters <- levels(single_multiple_sample_clustering)
     # Create new names for clusters (e.g., "Cluster0", "Cluster1", ...)
     new_cluster_names <- paste0("Cluster", current_clusters)
@@ -445,10 +582,39 @@ datainput_single_multiple_sample_cellchat1<- function(index_multiple_sample_cell
   plots604 <- netAnalysis_signalingRole_heatmap(cellchat, pattern = "incoming", height = 20)
   plots605 <- netAnalysis_signalingRole_heatmap(cellchat, pattern = "outgoing", height = 20)
   #index_s_cellchat9
-  cellchat <- identifyCommunicationPatterns(cellchat, pattern = "incoming", k = index_s_cellchat9)
-  cellchat <- identifyCommunicationPatterns(cellchat, pattern = "outgoing", k = index_s_cellchat9)
-  plots606 <-netAnalysis_river(cellchat,  pattern = "incoming")
-  plots607 <-netAnalysis_river(cellchat,  pattern = "outgoing")
+  pattern_messages <- character(0)
+  cellchat <- tryCatch(
+    safe_identify_communication_patterns(cellchat, pattern_name = "incoming", k_value = index_s_cellchat9),
+    error = function(e) {
+      pattern_messages <<- c(pattern_messages, paste0("Incoming pattern analysis skipped: ", conditionMessage(e)))
+      cellchat
+    }
+  )
+  cellchat <- tryCatch(
+    safe_identify_communication_patterns(cellchat, pattern_name = "outgoing", k_value = index_s_cellchat9),
+    error = function(e) {
+      pattern_messages <<- c(pattern_messages, paste0("Outgoing pattern analysis skipped: ", conditionMessage(e)))
+      cellchat
+    }
+  )
+
+  plots606 <- if (has_pattern_result(cellchat, "incoming")) {
+    tryCatch(
+      netAnalysis_river(cellchat, pattern = "incoming"),
+      error = function(e) make_info_plot(paste("Incoming communication pattern plot is unavailable.", conditionMessage(e), sep = "\n"))
+    )
+  } else {
+    make_info_plot(paste(c("Incoming communication pattern plot is unavailable.", pattern_messages[grepl("^Incoming", pattern_messages)]), collapse = "\n"))
+  }
+
+  plots607 <- if (has_pattern_result(cellchat, "outgoing")) {
+    tryCatch(
+      netAnalysis_river(cellchat, pattern = "outgoing"),
+      error = function(e) make_info_plot(paste("Outgoing communication pattern plot is unavailable.", conditionMessage(e), sep = "\n"))
+    )
+  } else {
+    make_info_plot(paste(c("Outgoing communication pattern plot is unavailable.", pattern_messages[grepl("^Outgoing", pattern_messages)]), collapse = "\n"))
+  }
   
   return(list(plot1 = plots601, plot2 = plots602, plot3 = plots603, plot4 = plots604+plots605, plot5 = plots606+plots607, data1 =interaction_table, data3=pathways_show_all, data2=cellchat)) 
   

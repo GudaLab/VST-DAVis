@@ -1,3 +1,28 @@
+format_trajectory_runtime_error <- function(e) {
+  error_message <- conditionMessage(e)
+  if (is.null(error_message) || !length(error_message) || !nzchar(error_message[[1]])) {
+    error_message <- "Unknown trajectory graph learning error."
+  }
+
+  error_message <- paste(error_message, collapse = "\n")
+  package_corruption_patterns <- c(
+    "lazy-load database",
+    "\\.rdb.*corrupt",
+    "internal error -3 in R_decompress1",
+    "package or namespace load failed"
+  )
+
+  if (any(vapply(package_corruption_patterns, grepl, logical(1), x = error_message, ignore.case = TRUE))) {
+    return(paste0(
+      "Trajectory graph learning could not run because the installed igraph package on this server appears to be corrupt. ",
+      "Restart the R session and reinstall igraph with install.packages('igraph'), then rerun trajectory analysis.\n",
+      "Original error: ", error_message
+    ))
+  }
+
+  paste0("Trajectory graph learning failed during Monocle3 learn_graph(). Original error: ", error_message)
+}
+
 datainput_single_multiple_sample_trajectory1<- function(index_multiple_sample_input, index_subclustering_multiple_sample_input, index_multiple_sample_input2, index_subclustering_multiple_sample_input2, index_s_trajectory1, index_s_trajectory2, index_s_trajectory3, index_s_trajectory4, index_s_trajectory5, index_s_trajectory6, index_s_trajectory7, index_s_trajectory8, index_multiple_sample_normalization_method){
   index_s_trajectory3 <- as.logical(index_s_trajectory3)
   index_s_trajectory4 <- as.logical(index_s_trajectory4)
@@ -63,7 +88,12 @@ datainput_single_multiple_sample_trajectory1<- function(index_multiple_sample_in
   cds@int_colData@listData[["reducedDims"]]@listData[["UMAP"]] <- single_multiple_sample_clustering@reductions$umap@cell.embeddings
   
   #Learn Trajectory
-  cds <- learn_graph(cds, use_partition = index_s_trajectory3, close_loop = index_s_trajectory4)
+  cds <- tryCatch(
+    learn_graph(cds, use_partition = index_s_trajectory3, close_loop = index_s_trajectory4),
+    error = function(e) {
+      stop(format_trajectory_runtime_error(e), call. = FALSE)
+    }
+  )
   plots100 <- plot_cells(cds, color_cells_by = "cluster", label_groups_by_cluster = index_s_trajectory5, label_branch_points = index_s_trajectory6, label_roots = index_s_trajectory7, label_leaves = index_s_trajectory8, group_label_size = 10, graph_label_size = 4)
   
   return(list(data1 = single_multiple_sample_clustering, data2 = cds, plot1 = plots100))

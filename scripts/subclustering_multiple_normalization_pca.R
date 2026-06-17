@@ -1,4 +1,5 @@
 # Requires: library(Seurat)
+source_app_script("scripts/assay_utils.R")
 
 datainput_subclustering_multiple_normalization_pca <- function(
     index_subclustering_multiple_normalization_pca_input,
@@ -7,7 +8,8 @@ datainput_subclustering_multiple_normalization_pca <- function(
     index_subclustering_multiple_sample_var_genes,                    # integer (LogNormalize)
     index_subclustering_multiple_sample_var_genes1,                   # integer (SCT integration features)
     index_subclustering_multiple_sample_normalization_variable_genes, # "vst" | "mean.var.plot" | "dispersion"
-    index_subclustering_multiple_sample_pca_dim                       # integer PCA dims
+    index_subclustering_multiple_sample_pca_dim,                      # integer PCA dims
+    index_subclustering_multiple_sample_assay = "auto"                # "auto" | "RNA" | "Spatial" | "SCT"
 ){
   # ---------- helpers ----------
   `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
@@ -15,10 +17,26 @@ datainput_subclustering_multiple_normalization_pca <- function(
     if (missing(x) || is.null(x) || length(x) == 0) return(default)
     as.character(x[[1]])
   }
+  normalize_assay_choice <- function(x, default = "auto") {
+    x <- tolower(coerce_scalar_chr(x, default))
+    if (x %in% c("auto", "default")) return("auto")
+    if (x == "rna") return("RNA")
+    if (x == "spatial") return("Spatial")
+    if (x == "sct") return("SCT")
+    x
+  }
   # Defensive assay picker (avoids %in% calling match() on NULL)
-  pick_assay <- function(s) {
+  pick_assay <- function(s, requested_assay = "auto") {
     ass <- tryCatch(Seurat::Assays(s), error = function(e) character(0))
     if (length(ass) == 0) return(NA_character_)
+    if (!identical(requested_assay, "auto")) {
+      if (requested_assay %in% ass) return(requested_assay)
+      stop(sprintf(
+        "Selected assay '%s' is not available. Available assays: %s",
+        requested_assay,
+        paste(ass, collapse = ", ")
+      ))
+    }
     if ("Spatial" %in% ass) return("Spatial")
     if ("RNA" %in% ass)     return("RNA")
     if ("SCT" %in% ass)     return("SCT")
@@ -39,6 +57,8 @@ datainput_subclustering_multiple_normalization_pca <- function(
     coerce_scalar_chr(index_subclustering_multiple_sample_normalization_method, "SCTransform")
   index_subclustering_multiple_sample_normalization_variable_genes <-
     coerce_scalar_chr(index_subclustering_multiple_sample_normalization_variable_genes, "vst")
+  index_subclustering_multiple_sample_assay <-
+    normalize_assay_choice(index_subclustering_multiple_sample_assay, "auto")
   
   index_subclustering_multiple_sample_scale_factor <- as.numeric(index_subclustering_multiple_sample_scale_factor %||% 1e4)
   index_subclustering_multiple_sample_var_genes    <- as.integer(index_subclustering_multiple_sample_var_genes %||% 2000)
@@ -52,9 +72,17 @@ datainput_subclustering_multiple_normalization_pca <- function(
   if (!index_subclustering_multiple_sample_normalization_variable_genes %in% c("vst","mean.var.plot","dispersion")) {
     stop("index_subclustering_multiple_sample_normalization_variable_genes must be one of 'vst','mean.var.plot','dispersion'")
   }
+  if (!index_subclustering_multiple_sample_assay %in% c("auto","RNA","Spatial","SCT")) {
+    stop("index_subclustering_multiple_sample_assay must be one of 'auto', 'RNA', 'Spatial', or 'SCT'")
+  }
+  if (identical(index_subclustering_multiple_sample_normalization_method, "LogNormalize") &&
+      identical(index_subclustering_multiple_sample_assay, "SCT")) {
+    stop("SCT assay can be selected only with SCTransform. Choose RNA or Spatial for LogNormalize.")
+  }
   
   npcs <- max(2, min(index_subclustering_multiple_sample_pca_dim, 100))
   integ_dims <- 1:min(30, npcs)
+  source_assay_used <- NULL
   
   # ---------- split & drop empties; ensure names ----------
   obj_list <- Seurat::SplitObject(index_subclustering_multiple_normalization_pca_input, split.by = "orig.ident")
@@ -66,9 +94,21 @@ datainput_subclustering_multiple_normalization_pca <- function(
   nsamp <- length(obj_list)
   
   # ---------- per-sample runners ----------
-  run_single_lognorm <- function(x, nm) {
-    a <- pick_assay(x)
+  sanitize_split <- function(x, nm) {
+    a <- pick_assay(x, requested_assay = index_subclustering_multiple_sample_assay)
     if (is.na(a)) stop(sprintf("Split '%s' has no usable assays.", nm))
+    if (is.null(source_assay_used)) {
+      source_assay_used <<- a
+    }
+    Seurat::DefaultAssay(x) <- a
+    x <- sanitize_seurat_for_normalization(x, assay = a, sample_name = nm)
+    list(object = x, assay = a)
+  }
+
+  run_single_lognorm <- function(x, nm) {
+    prep <- sanitize_split(x, nm)
+    x <- prep$object
+    a <- prep$assay
     Seurat::DefaultAssay(x) <- a
     x <- Seurat::NormalizeData(x, normalization.method = "LogNormalize",
                                scale.factor = index_subclustering_multiple_sample_scale_factor, verbose = FALSE)
@@ -79,10 +119,13 @@ datainput_subclustering_multiple_normalization_pca <- function(
   }
   
   run_single_sct <- function(x, nm) {
-    a <- pick_assay(x)
-    if (is.na(a)) stop(sprintf("Split '%s' has no usable assays.", nm))
+    prep <- sanitize_split(x, nm)
+    x <- prep$object
+    a <- prep$assay
     Seurat::DefaultAssay(x) <- a
-    x <- Seurat::SCTransform(x, assay = a, verbose = FALSE)
+    if (!identical(a, "SCT")) {
+      x <- Seurat::SCTransform(x, assay = a, verbose = FALSE)
+    }
     Seurat::DefaultAssay(x) <- "SCT"
     Seurat::RunPCA(x, npcs = npcs, verbose = FALSE)
   }
@@ -114,10 +157,16 @@ datainput_subclustering_multiple_normalization_pca <- function(
       obj_list <- lapply(seq_along(obj_list), function(i) {
         x  <- obj_list[[i]]
         nm <- names(obj_list)[i]
-        a <- pick_assay(x)
-        if (is.na(a)) stop(sprintf("Split '%s' has no usable assays.", nm))
+        prep <- sanitize_split(x, nm)
+        x <- prep$object
+        a <- prep$assay
         Seurat::DefaultAssay(x) <- a
-        Seurat::SCTransform(x, assay = a, verbose = FALSE)
+        if (!identical(a, "SCT")) {
+          x <- Seurat::SCTransform(x, assay = a, verbose = FALSE)
+        } else {
+          Seurat::DefaultAssay(x) <- "SCT"
+          x
+        }
       })
       experiment.features <- Seurat::SelectIntegrationFeatures(object.list = obj_list, nfeatures = index_subclustering_multiple_sample_var_genes1)
       experiment <- Seurat::PrepSCTIntegration(object.list = obj_list, anchor.features = experiment.features, verbose = TRUE)
@@ -131,6 +180,9 @@ datainput_subclustering_multiple_normalization_pca <- function(
   }
   
   # ---------- plots ----------
+  obj@misc$vstdavis_input_assay <- index_subclustering_multiple_sample_assay
+  obj@misc$vstdavis_source_assay_used <- source_assay_used %||% index_subclustering_multiple_sample_assay
+  obj@misc$vstdavis_default_assay_after_normalization <- Seurat::DefaultAssay(obj)
   p1 <- Seurat::DimHeatmap(obj, dims = 1, cells = 500, balanced = TRUE, fast = FALSE)
   p2 <- Seurat::ElbowPlot(obj, ndims = npcs)
   p3 <- Seurat::DimPlot(obj, reduction = "pca")

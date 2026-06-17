@@ -1,14 +1,31 @@
 datainput_multiple_clustering <- function(index_multiple_clustering_input, index_multiple_sample_normalization_method, index_m_clustering1, index_m_clustering2, index_m_clustering3, index_m_clustering4, index_m_clustering5, index_m_clustering6, index_m_clustering7, index_m_clustering8, index_m_clustering9, index_m_clustering10, index_m_clustering11, index_m_clustering12){
+  get_reductions <- function(object) {
+    tryCatch(Seurat::Reductions(object), error = function(e) character(0))
+  }
+  pick_clustering_reduction <- function(object) {
+    if ("harmony" %in% get_reductions(object)) "harmony" else "pca"
+  }
+  safe_dims <- function(object, reduction, requested_dims) {
+    requested_dims <- as.integer(requested_dims)
+    if (is.na(requested_dims) || requested_dims < 1) requested_dims <- 1
+    embeddings <- tryCatch(Seurat::Embeddings(object, reduction = reduction), error = function(e) NULL)
+    available_dims <- if (is.null(embeddings)) requested_dims else ncol(embeddings)
+    seq_len(max(1, min(requested_dims, available_dims)))
+  }
+
   index_m_clustering5 <- as.numeric(index_m_clustering5)
   index_m_clustering10 <- as.logical(index_m_clustering10)
   index_m_clustering12 <- as.logical(index_m_clustering12)
   label_size <- ifelse(as.logical(index_m_clustering10) | as.logical(index_m_clustering12), 3.5, 0)
+  clustering_reduction <- pick_clustering_reduction(index_multiple_clustering_input)
+  neighbor_dims <- safe_dims(index_multiple_clustering_input, clustering_reduction, index_m_clustering1)
   
-    multiple_sample_clustering<- FindNeighbors(index_multiple_clustering_input, dims = 1:index_m_clustering1 , k.param = index_m_clustering2, n.trees = index_m_clustering3)
+    multiple_sample_clustering<- FindNeighbors(index_multiple_clustering_input, reduction = clustering_reduction, dims = neighbor_dims , k.param = index_m_clustering2, n.trees = index_m_clustering3)
     multiple_sample_clustering<- FindClusters(multiple_sample_clustering, resolution = index_m_clustering4, algorithm = index_m_clustering5)
     if (index_m_clustering6 == "umap")
     { 
-   multiple_sample_clustering<- RunUMAP(multiple_sample_clustering, dims = 1:index_m_clustering7, n.neighbors = index_m_clustering8, min.dist = index_m_clustering9)
+   umap_dims <- safe_dims(multiple_sample_clustering, clustering_reduction, index_m_clustering7)
+   multiple_sample_clustering<- RunUMAP(multiple_sample_clustering, reduction = clustering_reduction, dims = umap_dims, n.neighbors = index_m_clustering8, min.dist = index_m_clustering9)
    plots16 <-DimPlot(multiple_sample_clustering, reduction = "umap", label = index_m_clustering10, group.by = "seurat_clusters")
    plots17 <-DimPlot(multiple_sample_clustering, reduction = "umap", label = index_m_clustering10, group.by = "condition")
    plots18 <-DimPlot(multiple_sample_clustering, reduction = "umap", label = index_m_clustering10, group.by = "orig.ident")
@@ -21,7 +38,8 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
   }
     else if (index_m_clustering6 == "tsne")
     {
-      multiple_sample_clustering<- RunTSNE(multiple_sample_clustering, dims = 1:index_m_clustering11)
+      tsne_dims <- safe_dims(multiple_sample_clustering, clustering_reduction, index_m_clustering11)
+      multiple_sample_clustering<- RunTSNE(multiple_sample_clustering, reduction = clustering_reduction, dims = tsne_dims)
       plots16 <-DimPlot(multiple_sample_clustering, reduction = "tsne", label = index_m_clustering12, group.by = "seurat_clusters")
       plots17 <-DimPlot(multiple_sample_clustering, reduction = "tsne", label = index_m_clustering12, group.by = "condition")
       plots18 <-DimPlot(multiple_sample_clustering, reduction = "tsne", label = index_m_clustering12, group.by = "orig.ident")
@@ -45,7 +63,7 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
     
     #cell_couts_in_custer_for_each_condition
     multiple_sample_clustering_cell_couts_in_condition <- multiple_sample_clustering@meta.data %>% as.data.table
-    multiple_sample_clustering_total_cell_couts_in_custer_for_each_condition <- data.frame(t(multiple_sample_clustering_cell_couts_in_condition[, .N, by = c("condition", "seurat_clusters")] %>% dcast(., condition ~ seurat_clusters, value.var = "N"))) %>%  rownames_to_column(var = "condition") %>% `colnames<-`(.[1, ]) %>%  .[-1, ]
+    multiple_sample_clustering_total_cell_couts_in_custer_for_each_condition <- data.frame(t(multiple_sample_clustering_cell_couts_in_condition[, .N, by = c("condition", "seurat_clusters")] %>% dcast(., condition ~ seurat_clusters, value.var = "N"))) %>%  tibble::rownames_to_column(var = "condition") %>% `colnames<-`(.[1, ]) %>%  .[-1, ]
     
     plots20 <- ggplot(multiple_sample_clustering@meta.data, aes(seurat_clusters, fill = condition)) +
       geom_bar(stat="count")+
@@ -56,7 +74,7 @@ datainput_multiple_clustering <- function(index_multiple_clustering_input, index
     
     #cell_couts_in_custer_for_each_samples
     multiple_sample_clustering_cell_couts_in_samples <- multiple_sample_clustering@meta.data %>% as.data.table
-    multiple_sample_clustering_total_cell_couts_in_custer_for_each_samples <- data.frame(t(multiple_sample_clustering_cell_couts_in_samples[, .N, by = c("orig.ident", "seurat_clusters")] %>% dcast(., orig.ident ~ seurat_clusters, value.var = "N"))) %>%  rownames_to_column(var = "Clusters") %>% `colnames<-`(.[1, ]) %>%  .[-1, ]
+    multiple_sample_clustering_total_cell_couts_in_custer_for_each_samples <- data.frame(t(multiple_sample_clustering_cell_couts_in_samples[, .N, by = c("orig.ident", "seurat_clusters")] %>% dcast(., orig.ident ~ seurat_clusters, value.var = "N"))) %>%  tibble::rownames_to_column(var = "Clusters") %>% `colnames<-`(.[1, ]) %>%  .[-1, ]
     colnames(multiple_sample_clustering_total_cell_couts_in_custer_for_each_samples)[1] <- "Clusters"
     
     plots21 <- ggplot(multiple_sample_clustering@meta.data, aes(seurat_clusters, fill = orig.ident)) +
