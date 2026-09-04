@@ -290,16 +290,10 @@ if (!require("SeuratDisk")) remotes::install_github("mojaveazure/seurat-disk", u
 if (!require("CellChat")) remotes::install_github("jinworks/CellChat", upgrade = "never", dependencies = TRUE)
 if (!require("genesorteR")) remotes::install_github("mahmoudibrahim/genesorteR", upgrade = "never", dependencies = TRUE)
 if (!require("hdWGCNA")) remotes::install_github("smorabit/hdWGCNA", upgrade = "never", dependencies = TRUE)
-Sys.setenv(OPENAI_API_KEY = '')  #Add your key here
-
 
 source_app_script("scripts/PrctCellExpringGene.R")
 options(shiny.maxRequestSize=3000*1024^2)
 options(future.globals.maxSize= 925289600000)
-
-if (!nzchar(Sys.getenv("OPENAI_API_KEY"))) {
-  message("OPENAI_API_KEY is not set. GPTCelltype will remain unavailable until you set it in the R session or environment.")
-}
 
 if (.Platform$OS.type == "windows") {
   # For Windows

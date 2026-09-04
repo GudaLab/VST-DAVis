@@ -515,6 +515,7 @@ server <- function(input, output, session) {
     matched_ids <- matched_ids[!grepl("^(download_|info_btn|timeOut$|recalc$)", matched_ids)]
     matched_ids <- matched_ids[!grepl("_plot_(height|width|dpi|type)$", matched_ids)]
     matched_ids <- matched_ids[!grepl("_downloadoutput$", matched_ids)]
+    matched_ids <- matched_ids[!grepl("api.?key|password|secret|access.?token", matched_ids, ignore.case = TRUE)]
 
     compact_run_params(all_inputs[matched_ids])
   }
@@ -767,6 +768,224 @@ server <- function(input, output, session) {
       }
     )
   }
+
+  source_app_script("scripts/saved_seurat_restore.R", local = environment())
+
+  uploaded_seurat_shortcut <- reactiveVal(NULL)
+  saved_seurat_upload_status <- reactiveVal(NULL)
+
+  get_uploaded_shortcut <- function(workflow = NULL, min_rank = NULL) {
+    shortcut <- uploaded_seurat_shortcut()
+    if (is.null(shortcut)) {
+      return(NULL)
+    }
+    if (!is.null(workflow) && !identical(shortcut$spec$workflow, workflow)) {
+      return(NULL)
+    }
+    if (!is.null(min_rank) && as.integer(shortcut$spec$stage_rank) < as.integer(min_rank)) {
+      return(NULL)
+    }
+    shortcut
+  }
+
+  restore_action_ids <- c(
+    "multiple_sample_submit",
+    "multiple_sample_qc_filtering",
+    "multiple_sample_normalization",
+    "multiple_sample_clustering",
+    "multiple_sample_marker",
+    "multiple_sample_celltype",
+    "multiple_sample_clusterbased",
+    "multiple_sample_conditionbased",
+    "subclustering_multiple_sample_submit",
+    "subclustering_multiple_sample_normalization",
+    "subclustering_multiple_sample_clustering",
+    "subclustering_multiple_sample_marker",
+    "subclustering_multiple_sample_celltype",
+    "subclustering_multiple_sample_clusterbased",
+    "subclustering_multiple_sample_conditionbased"
+  )
+
+  snapshot_restore_action_counts <- function() {
+    stats::setNames(lapply(restore_action_ids, function(input_id) {
+      as.integer(input[[input_id]] %||% 0L)
+    }), restore_action_ids)
+  }
+
+  has_new_analysis_click <- function(input_id, value) {
+    current_count <- as.integer(value %||% 0L)
+    shortcut <- uploaded_seurat_shortcut()
+    baseline <- if (is.null(shortcut)) 0L else as.integer(shortcut$action_counts[[input_id]] %||% 0L)
+    current_count > baseline
+  }
+
+  require_new_analysis_click <- function(input_id, value) {
+    req(has_new_analysis_click(input_id, value))
+    invisible(TRUE)
+  }
+
+  output$saved_seurat_object_message <- renderUI({
+    if (!identical(input$multiple_sample_format, "saved_seurat_object")) {
+      return(NULL)
+    }
+
+    status <- saved_seurat_upload_status()
+    alert_class <- "alert alert-info"
+    title <- "Accepted VST-DAVis Seurat object filenames"
+    body <- paste(
+      "Choose a previously generated object, then click Submit.",
+      "The filename must exactly match one of the VST-DAVis download names below."
+    )
+    if (!is.null(status)) {
+      alert_class <- if (identical(status$type, "error")) "alert alert-danger" else "alert alert-success"
+      title <- status$title
+      body <- status$message
+    }
+
+    tags$div(
+      class = alert_class,
+      tags$p(tags$b(title)),
+      tags$p(body),
+      tags$ul(lapply(accepted_saved_seurat_object_names, function(file_name) {
+        tags$li(tags$code(file_name))
+      }))
+    )
+  })
+
+  show_multiple_shortcut_boxes <- function(rank) {
+    show_ids <- function(ids) invisible(lapply(ids, shinyjs::show))
+    if (rank >= 1) {
+      shinyjs::hide("m_bf_box0")
+      show_ids(paste0("m_bf_box", 1:6))
+    }
+    if (rank >= 2) {
+      show_ids(paste0("m_qc_filter_box", 1:7))
+    }
+    if (rank >= 3) {
+      show_ids(c("m_pca_box1", "m_elbow_box", paste0("m_pca_box", 2:4)))
+    }
+    if (rank >= 4) {
+      show_ids(paste0("m_clustering_box", 1:15))
+    }
+    if (rank >= 5) {
+      show_ids(paste0("m_marker_box", 5:7))
+    }
+    if (rank >= 6) {
+      show_ids(paste0("m_celltype_box", 7:11))
+    }
+    if (rank >= 7) {
+      show_ids(paste0("m_clusterbased_box", 2:4))
+    }
+  }
+
+  show_subclustering_shortcut_boxes <- function(rank) {
+    show_ids <- function(ids) invisible(lapply(ids, shinyjs::show))
+    shinyjs::hide("m_subclustering0")
+    shinyjs::show("m_subclustering1")
+    shinyjs::show("subclustering_multiple_sample_submit")
+    if (rank >= 1) {
+      show_ids(paste0("m_subclustering_box", 1:4))
+    }
+    if (rank >= 2) {
+      show_ids(c("m_subclustering_pca_box1", "m_subclustering_elbow_box", paste0("m_subclustering_pca_box", 2:4)))
+    }
+    if (rank >= 3) {
+      show_ids(paste0("m_subclustering_clustering_box", 1:15))
+    }
+    if (rank >= 4) {
+      show_ids(paste0("m_subclustering_marker_box", 5:7))
+    }
+    if (rank >= 5) {
+      show_ids(paste0("m_subclustering_celltype_box", 7:11))
+    }
+    if (rank >= 6) {
+      show_ids(paste0("m_subclustering_clusterbased_box", 2:4))
+    }
+  }
+
+  show_saved_seurat_shortcut_target <- function(spec) {
+    rank <- as.integer(spec$stage_rank)
+    if (identical(spec$workflow, "multiple")) {
+      tabs <- c(
+        "Stats",
+        "Sample Groups and QC Filtering",
+        "Normalization and PCA Analysis",
+        "Clustering",
+        "Markers Identification",
+        "Cell Type Prediction",
+        "Cluster-Based Plots"
+      )
+      invisible(lapply(tabs[seq_len(min(rank, length(tabs)))], function(tab_name) {
+        showTab(inputId = "multiple_tabsets", target = tab_name)
+      }))
+      show_multiple_shortcut_boxes(rank)
+      updateNavbarPage(session, "menu_tabs", selected = "Single or Multiple Samples Analysis")
+      updateTabsetPanel(session, "multiple_tabsets", selected = spec$tab)
+      return(invisible(NULL))
+    }
+
+    tabs <- c(
+      "Cell Stats",
+      "Normalization and PCA Analysis",
+      "Clustering",
+      "Markers Identification",
+      "Cell Type Prediction",
+      "Cluster-Based Plots"
+    )
+    invisible(lapply(tabs[seq_len(min(rank, length(tabs)))], function(tab_name) {
+      showTab(inputId = "subclustering_multiple_tabsets", target = tab_name)
+    }))
+    show_subclustering_shortcut_boxes(rank)
+    updateNavbarPage(session, "menu_tabs", selected = "Subclustering")
+    updateTabsetPanel(session, "subclustering_multiple_tabsets", selected = spec$tab)
+    invisible(NULL)
+  }
+
+  observeEvent(input$multiple_sample_saved_seurat_object_rds, {
+    req(identical(input$multiple_sample_format, "saved_seurat_object"))
+    uploaded_seurat_shortcut(NULL)
+    saved_seurat_upload_status(NULL)
+  }, ignoreInit = TRUE, priority = 110)
+
+  observeEvent(input$multiple_sample_submit, {
+    req(identical(input$multiple_sample_format, "saved_seurat_object"))
+    uploaded_seurat_shortcut(NULL)
+
+    loaded <- load_saved_seurat_shortcut(input$multiple_sample_saved_seurat_object_rds)
+    if (!isTRUE(loaded$ok)) {
+      saved_seurat_upload_status(list(
+        type = "error",
+        title = loaded$title,
+        message = loaded$message
+      ))
+      updateNavbarPage(session, "menu_tabs", selected = "Single or Multiple Samples Analysis")
+      updateTabsetPanel(session, "multiple_tabsets", selected = "Stats")
+      showNotification(loaded$message, type = "error", duration = 8)
+      return()
+    }
+
+    spec <- if (is.data.frame(loaded$spec)) as.list(loaded$spec[1, , drop = FALSE]) else loaded$spec
+    uploaded_seurat_shortcut(list(
+      file_name = loaded$file_name,
+      object = loaded$object,
+      spec = spec,
+      action_counts = snapshot_restore_action_counts()
+    ))
+    saved_seurat_upload_status(list(
+      type = "success",
+      title = "VST-DAVis Seurat object loaded",
+      message = paste("Loaded", loaded$file_name, "and restored", spec$tab, "so the analysis can continue.")
+    ))
+    show_saved_seurat_shortcut_target(spec)
+    showNotification(paste("Loaded", loaded$file_name), type = "message", duration = 5)
+  }, ignoreInit = TRUE, priority = 100)
+
+  observeEvent(input$multiple_sample_format, {
+    if (!identical(input$multiple_sample_format, "saved_seurat_object")) {
+      uploaded_seurat_shortcut(NULL)
+      saved_seurat_upload_status(NULL)
+    }
+  }, ignoreInit = TRUE)
 
   bulk_download_state <- reactiveValues(
     status = "Idle",
@@ -2266,11 +2485,31 @@ server <- function(input, output, session) {
 
   
   ################ multiple input###########   
+  output$multiple_sample_upload_heading <- renderUI({
+    format_choice <- input$multiple_sample_format %||% "h5"
+    if (identical(format_choice, "exampledata")) {
+      return(NULL)
+    }
+    if (identical(format_choice, "saved_seurat_object")) {
+      return(h5("Upload a previously generated VST-DAVis Seurat object"))
+    }
+    h5("Upload multiple samples, each in its own ZIP file")
+  })
+
   output$multiple_sample_file_ui <- renderUI({
     format_choice <- input$multiple_sample_format %||% "h5"
 
     if (identical(format_choice, "exampledata") || identical(format_choice, "MFB")) {
       return(NULL)
+    }
+
+    if (identical(format_choice, "saved_seurat_object")) {
+      return(fileInput(
+        "multiple_sample_saved_seurat_object_rds",
+        label = "Upload one VST-DAVis Seurat object",
+        multiple = FALSE,
+        accept = c(".rds", ".RDS")
+      ))
     }
 
     upload_label <- if (identical(format_choice, "visium_bin")) {
@@ -2293,6 +2532,7 @@ server <- function(input, output, session) {
       shinyjs::hide("multiple_sample_spatial_mode")
       shinyjs::hide("multiple_sample_hd_bin_size")
       shinyjs::hide("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
 
     }
     else if (input$multiple_sample_format == "MFB") {
@@ -2300,6 +2540,7 @@ server <- function(input, output, session) {
       shinyjs::hide("multiple_sample_spatial_mode")
       shinyjs::hide("multiple_sample_hd_bin_size")
       shinyjs::hide("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
 
     }
     else if (input$multiple_sample_format == "visium_bin") {
@@ -2307,6 +2548,15 @@ server <- function(input, output, session) {
       shinyjs::hide("multiple_sample_spatial_mode")
       shinyjs::show("multiple_sample_hd_bin_size")
       shinyjs::show("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
+
+    }
+    else if (input$multiple_sample_format == "saved_seurat_object") {
+      shinyjs::hide("multiple_sample_file_mfb")
+      shinyjs::hide("multiple_sample_spatial_mode")
+      shinyjs::hide("multiple_sample_hd_bin_size")
+      shinyjs::hide("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
 
     }
     else if (input$multiple_sample_format == "exampledata") {
@@ -2314,6 +2564,7 @@ server <- function(input, output, session) {
       shinyjs::hide("multiple_sample_spatial_mode")
       shinyjs::hide("multiple_sample_hd_bin_size")
       shinyjs::hide("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
 
     }
     
@@ -2366,6 +2617,7 @@ server <- function(input, output, session) {
   shinyjs::hide("m_bf_box6")
   
   observeEvent(input$multiple_sample_submit,{
+    req(!identical(input$multiple_sample_format, "saved_seurat_object"))
     #shinyjs::hide("m_bf_box0")
     shinyjs::show("m_bf_box1")
     shinyjs::show("m_bf_box2")
@@ -2383,6 +2635,7 @@ server <- function(input, output, session) {
   shinyjs::hide("m_bf_box5")
   
   observeEvent(input$multiple_sample_submit,{
+    req(!identical(input$multiple_sample_format, "saved_seurat_object"))
     shinyjs::show("m_bf_box1")
     shinyjs::show("m_bf_box2")
     shinyjs::show("m_bf_box3")
@@ -2815,7 +3068,13 @@ server <- function(input, output, session) {
   #     upload_multiple_sample_file <- filesdir
   #     upload_multiple_sample_file_names <- input$multiple_sample_file_mfb$name
   #   }
-  datainput_multiple_sample_level <- eventReactive(input$multiple_sample_submit, {
+  datainput_multiple_sample_level <- eventReactive(list(input$multiple_sample_submit, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 1)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_submit", input$multiple_sample_submit)) {
+      return(make_shortcut_stats_result(shortcut$object, shortcut$file_name))
+    }
+    require_new_analysis_click("multiple_sample_submit", input$multiple_sample_submit)
+    req(!identical(input$multiple_sample_format, "saved_seurat_object"))
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Load input data",
@@ -2863,7 +3122,7 @@ server <- function(input, output, session) {
         )
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   observeEvent(datainput_multiple_sample_level(), {
     req(datainput_multiple_sample_level())
     
@@ -3005,7 +3264,7 @@ server <- function(input, output, session) {
   output$m_so_before_filtering <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (Before QC)",
-    filename_text = "seuart_object_before_qc.RDS",
+    filename_text = "seurat_object_before_qc.RDS",
     object_expr = datainput_multiple_sample_level()[[5]]
   )
   })
@@ -3113,7 +3372,12 @@ server <- function(input, output, session) {
   
   
   ##############multiple QC after filtering###################   
-  datainput_multiple_qc_filter_level <- eventReactive(input$multiple_sample_qc_filtering,{
+  datainput_multiple_qc_filter_level <- eventReactive(list(input$multiple_sample_qc_filtering, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 2)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_qc_filtering", input$multiple_sample_qc_filtering)) {
+      return(make_shortcut_qc_result(shortcut$object))
+    }
+    require_new_analysis_click("multiple_sample_qc_filtering", input$multiple_sample_qc_filtering)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "QC filtering",
@@ -3144,7 +3408,7 @@ server <- function(input, output, session) {
         )
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   
   
@@ -3333,7 +3597,7 @@ server <- function(input, output, session) {
   output$m_so_after_filtering <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After QC)",
-    filename_text = "multiple_sample_seuart_object_after_qc.RDS",
+    filename_text = "multiple_sample_seurat_object_after_qc.RDS",
     object_expr = datainput_multiple_qc_filter_level()[[7]]
   )
   
@@ -3347,7 +3611,12 @@ server <- function(input, output, session) {
   
   ##########################Tab1.3###############################      
   ##############multiple Normalization & PCA###################      
-  datainput_multiple_normalization_pca_level <- eventReactive(input$multiple_sample_normalization,{
+  datainput_multiple_normalization_pca_level <- eventReactive(list(input$multiple_sample_normalization, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 3)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_normalization", input$multiple_sample_normalization)) {
+      return(make_shortcut_normalization_result(shortcut$object))
+    }
+    require_new_analysis_click("multiple_sample_normalization", input$multiple_sample_normalization)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Normalization and PCA",
@@ -3357,7 +3626,7 @@ server <- function(input, output, session) {
         datainput_multiple_normalization_pca(index_multiple_normalization_pca_input = datainput_multiple_qc_filter_level()[[7]], index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, multiple_sample_normalization_method1 = input$multiple_sample_normalization_method1, index_multiple_sample_scale_factor=input$multiple_sample_scale_factor, index_multiple_sample_var_genes = input$multiple_sample_var_genes,  index_multiple_sample_var_genes1 = input$multiple_sample_var_genes1, index_multiple_sample_normalization_variable_genes=input$multiple_sample_normalization_variable_genes, index_multiple_sample_pca_dim=input$multiple_sample_pca_dim, index_multiple_sample_assay=input$multiple_sample_assay)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   
   output$m_pca_plot<-renderPlot({
@@ -3480,7 +3749,7 @@ server <- function(input, output, session) {
   output$m_normalization <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Normalization)",
-    filename_text = "multiple_sample_seuart_object_after_normalization.RDS",
+    filename_text = "multiple_sample_seurat_object_after_normalization.RDS",
     object_expr = datainput_multiple_normalization_pca_level()[[5]]
   )
   
@@ -3494,7 +3763,14 @@ server <- function(input, output, session) {
   
   #####################################################Tab1.4####################      
   ########################################multiple Clustering###################      
-  datainput_multiple_clustering_level <- eventReactive(input$multiple_sample_clustering,{
+  datainput_multiple_clustering_level <- eventReactive(list(input$multiple_sample_clustering, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 4)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_clustering", input$multiple_sample_clustering)) {
+      preferred_reduction <- input$m_clustering6 %||% NULL
+      label <- if (identical(preferred_reduction, "tsne")) input$m_clustering12 else input$m_clustering10
+      return(make_shortcut_clustering_result(shortcut$object, preferred_reduction, label))
+    }
+    require_new_analysis_click("multiple_sample_clustering", input$multiple_sample_clustering)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Clustering",
@@ -3504,7 +3780,7 @@ server <- function(input, output, session) {
         datainput_multiple_clustering(index_multiple_clustering_input = datainput_multiple_normalization_pca_level()[[5]], index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, index_m_clustering1 = input$m_clustering1, index_m_clustering2 = input$m_clustering2, index_m_clustering3 = input$m_clustering3, index_m_clustering4 = input$m_clustering4, index_m_clustering5 = input$m_clustering5, index_m_clustering6 = input$m_clustering6, index_m_clustering7 = input$m_clustering7, index_m_clustering8 = input$m_clustering8, index_m_clustering9 = input$m_clustering9, index_m_clustering10 = input$m_clustering10, index_m_clustering11 = input$m_clustering11, index_m_clustering12 = input$m_clustering12)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   output$m_umap_tsne1_plot<-renderPlot({
     datainput_multiple_clustering_level()[1]
@@ -3863,7 +4139,7 @@ server <- function(input, output, session) {
   output$m_clustering <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Clustering)",
-    filename_text = "multiple_sample_seuart_object_after_clustering.RDS",
+    filename_text = "multiple_sample_seurat_object_after_clustering.RDS",
     object_expr = datainput_multiple_clustering_level()[[10]]
   )
   
@@ -3938,7 +4214,12 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_multiple_marker_level <- eventReactive(input$multiple_sample_marker,{
+  datainput_multiple_marker_level <- eventReactive(list(input$multiple_sample_marker, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 5)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_marker", input$multiple_sample_marker)) {
+      return(make_shortcut_marker_result(shortcut$object))
+    }
+    require_new_analysis_click("multiple_sample_marker", input$multiple_sample_marker)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Marker identification",
@@ -3948,7 +4229,7 @@ server <- function(input, output, session) {
         datainput_multiple_marker(index_multiple_marker_input = datainput_multiple_clustering_level()[[10]], index_m_marker1 = input$m_marker1, index_m_marker2 = input$m_marker2, index_m_marker3 = input$m_marker3, index_m_marker4 = input$m_marker4, index_m_marker5 = input$m_marker5, index_m_marker6 = input$m_marker6, index_m_marker7 = input$m_marker7, index_m_marker8 = input$m_marker8, index_m_marker9 = input$m_marker9, index_m_marker10 = input$m_marker10, index_multiple_sample_normalization_method = input$multiple_sample_normalization_method)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   
   output$m_marker1_table<- renderDataTable(DT::datatable((datainput_multiple_marker_level()[[1]]),
@@ -4003,7 +4284,7 @@ server <- function(input, output, session) {
   output$m_marker <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Marker Identification)",
-    filename_text = "multiple_sample_seuart_object_after_marker_identification.RDS",
+    filename_text = "multiple_sample_seurat_object_after_marker_identification.RDS",
     object_expr = datainput_multiple_marker_level()[[2]]
   )
   #####################################link to next tab###########################     
@@ -4021,8 +4302,30 @@ server <- function(input, output, session) {
                           paste("Cluster", levels(datainput_multiple_marker_level()[[2]])[i]), value = paste("Cluster", levels(datainput_multiple_marker_level()[[2]])[i])))
     })
   })
+
+  observeEvent(input$m_celltype1, {
+    if (as.character(input$m_celltype1) == "3") {
+      updateTextInput(session, "m_celltype_api_key", value = "")
+    }
+  }, ignoreInit = TRUE)
   
   observeEvent(input$multiple_sample_celltype,{
+    if (as.character(input$m_celltype1) == "3" && !nzchar(trimws(input$m_celltype_api_key %||% ""))) {
+      shinyjs::hide("m_celltype_box7")
+      shinyjs::hide("m_celltype_box8")
+      shinyjs::hide("m_celltype_box9")
+      shinyjs::hide("m_celltype_box10")
+      shinyjs::hide("m_celltype_box11")
+      showNotification(
+        "Paste your OpenAI API key in the GPTCelltype key box before submitting.",
+        type = "error",
+        duration = 8,
+        closeButton = TRUE
+      )
+      shinyjs::runjs("var keyInput = document.getElementById('m_celltype_api_key'); if (keyInput) { keyInput.focus(); }")
+      return()
+    }
+
     if(input$m_celltype1 == 1){
       shinyjs::show("m_celltype_box7")
       shinyjs::show("m_celltype_box8")
@@ -4063,17 +4366,34 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_multiple_celltype_level <- eventReactive(input$multiple_sample_celltype,{
+  datainput_multiple_celltype_level <- eventReactive(list(input$multiple_sample_celltype, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 6)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_celltype", input$multiple_sample_celltype)) {
+      return(make_shortcut_celltype_result(shortcut$object, input$m_clustering6, input$m_celltype8))
+    }
+    require_new_analysis_click("multiple_sample_celltype", input$multiple_sample_celltype)
+    gpt_api_key <- NULL
+    if (as.character(input$m_celltype1) == "3") {
+      gpt_api_key <- trimws(isolate(input$m_celltype_api_key %||% ""))
+      shiny::validate(shiny::need(
+        nzchar(gpt_api_key),
+        "Paste your OpenAI API key in the GPTCelltype key box before submitting."
+      ))
+      on.exit({
+        updateTextInput(session, "m_celltype_api_key", value = "")
+        gpt_api_key <- NULL
+      }, add = TRUE)
+    }
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Cell type annotation",
       params = capture_run_inputs(c("multiple_sample_", "m_celltype", "mcelltypenames")),
       expr = {
         source_app_script("scripts/multiple_celltype.R")
-        datainput_multiple_celltype(index_multiple_celltype_input = datainput_multiple_marker_level()[[2]], index_cell_markers = datainput_multiple_marker_level()[[1]], index_m_celltype1 = input$m_celltype1, index_m_celltype2 = input$m_celltype2, index_m_celltype3 = input$m_celltype3, index_m_celltype4 = input$m_celltype4, index_m_celltype5 = input$m_celltype5, index_m_celltype6 = input$m_celltype6, index_m_celltype7 = c(input$mcelltypenames0,input$mcelltypenames1,input$mcelltypenames2,input$mcelltypenames3,input$mcelltypenames4,input$mcelltypenames5,input$mcelltypenames6,input$mcelltypenames7,input$mcelltypenames8,input$mcelltypenames9,input$mcelltypenames10,input$mcelltypenames11,input$mcelltypenames12,input$mcelltypenames13,input$mcelltypenames14,input$mcelltypenames15,input$mcelltypenames16,input$mcelltypenames17,input$mcelltypenames18,input$mcelltypenames19,input$mcelltypenames20,input$mcelltypenames21,input$mcelltypenames22,input$mcelltypenames23,input$mcelltypenames24,input$mcelltypenames25,input$mcelltypenames26,input$mcelltypenames27,input$mcelltypenames28,input$mcelltypenames29,input$mcelltypenames30,input$mcelltypenames31,input$mcelltypenames32,input$mcelltypenames33,input$mcelltypenames34,input$mcelltypenames35,input$mcelltypenames36,input$mcelltypenames37,input$mcelltypenames38,input$mcelltypenames39,input$mcelltypenames40,input$mcelltypenames41,input$mcelltypenames42,input$mcelltypenames43,input$mcelltypenames44,input$mcelltypenames45,input$mcelltypenames46,input$mcelltypenames47,input$mcelltypenames48,input$mcelltypenames49,input$mcelltypenames50,input$mcelltypenames51,input$mcelltypenames52,input$mcelltypenames53,input$mcelltypenames54,input$mcelltypenames55,input$mcelltypenames56,input$mcelltypenames57,input$mcelltypenames58,input$mcelltypenames59,input$mcelltypenames60,input$mcelltypenames61,input$mcelltypenames62,input$mcelltypenames63,input$mcelltypenames64,input$mcelltypenames65,input$mcelltypenames66,input$mcelltypenames67,input$mcelltypenames68,input$mcelltypenames69,input$mcelltypenames70,input$mcelltypenames71,input$mcelltypenames72,input$mcelltypenames73,input$mcelltypenames74,input$mcelltypenames75,input$mcelltypenames76,input$mcelltypenames77,input$mcelltypenames78,input$mcelltypenames79,input$mcelltypenames80,input$mcelltypenames81,input$mcelltypenames82,input$mcelltypenames83,input$mcelltypenames84,input$mcelltypenames85,input$mcelltypenames86,input$mcelltypenames87,input$mcelltypenames88,input$mcelltypenames89,input$mcelltypenames90,input$mcelltypenames91,input$mcelltypenames92,input$mcelltypenames93,input$mcelltypenames94,input$mcelltypenames95,input$mcelltypenames96,input$mcelltypenames97,input$mcelltypenames98,input$mcelltypenames99), index_m_celltype8 = input$m_celltype8, index_m_celltype9 = input$m_celltype_splitby, index_m_clustering6 = input$m_clustering6, index_multiple_sample_normalization_method = input$multiple_sample_normalization_method)
+        datainput_multiple_celltype(index_multiple_celltype_input = datainput_multiple_marker_level()[[2]], index_cell_markers = datainput_multiple_marker_level()[[1]], index_m_celltype1 = input$m_celltype1, index_m_celltype2 = input$m_celltype2, index_m_celltype3 = input$m_celltype3, index_m_celltype4 = input$m_celltype4, index_m_celltype5 = input$m_celltype5, index_m_celltype6 = input$m_celltype6, index_m_celltype7 = c(input$mcelltypenames0,input$mcelltypenames1,input$mcelltypenames2,input$mcelltypenames3,input$mcelltypenames4,input$mcelltypenames5,input$mcelltypenames6,input$mcelltypenames7,input$mcelltypenames8,input$mcelltypenames9,input$mcelltypenames10,input$mcelltypenames11,input$mcelltypenames12,input$mcelltypenames13,input$mcelltypenames14,input$mcelltypenames15,input$mcelltypenames16,input$mcelltypenames17,input$mcelltypenames18,input$mcelltypenames19,input$mcelltypenames20,input$mcelltypenames21,input$mcelltypenames22,input$mcelltypenames23,input$mcelltypenames24,input$mcelltypenames25,input$mcelltypenames26,input$mcelltypenames27,input$mcelltypenames28,input$mcelltypenames29,input$mcelltypenames30,input$mcelltypenames31,input$mcelltypenames32,input$mcelltypenames33,input$mcelltypenames34,input$mcelltypenames35,input$mcelltypenames36,input$mcelltypenames37,input$mcelltypenames38,input$mcelltypenames39,input$mcelltypenames40,input$mcelltypenames41,input$mcelltypenames42,input$mcelltypenames43,input$mcelltypenames44,input$mcelltypenames45,input$mcelltypenames46,input$mcelltypenames47,input$mcelltypenames48,input$mcelltypenames49,input$mcelltypenames50,input$mcelltypenames51,input$mcelltypenames52,input$mcelltypenames53,input$mcelltypenames54,input$mcelltypenames55,input$mcelltypenames56,input$mcelltypenames57,input$mcelltypenames58,input$mcelltypenames59,input$mcelltypenames60,input$mcelltypenames61,input$mcelltypenames62,input$mcelltypenames63,input$mcelltypenames64,input$mcelltypenames65,input$mcelltypenames66,input$mcelltypenames67,input$mcelltypenames68,input$mcelltypenames69,input$mcelltypenames70,input$mcelltypenames71,input$mcelltypenames72,input$mcelltypenames73,input$mcelltypenames74,input$mcelltypenames75,input$mcelltypenames76,input$mcelltypenames77,input$mcelltypenames78,input$mcelltypenames79,input$mcelltypenames80,input$mcelltypenames81,input$mcelltypenames82,input$mcelltypenames83,input$mcelltypenames84,input$mcelltypenames85,input$mcelltypenames86,input$mcelltypenames87,input$mcelltypenames88,input$mcelltypenames89,input$mcelltypenames90,input$mcelltypenames91,input$mcelltypenames92,input$mcelltypenames93,input$mcelltypenames94,input$mcelltypenames95,input$mcelltypenames96,input$mcelltypenames97,input$mcelltypenames98,input$mcelltypenames99), index_m_celltype8 = input$m_celltype8, index_m_celltype9 = input$m_celltype_splitby, index_m_clustering6 = input$m_clustering6, index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, index_openai_api_key = gpt_api_key)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   output$m_celltype1_plot<-renderPlot({
     datainput_multiple_celltype_level()[[5]]
   })
@@ -4202,7 +4522,7 @@ server <- function(input, output, session) {
   output$m_celltype <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Cell Type Annotation)",
-    filename_text = "multiple_sample_seuart_object_after_celltypes.RDS",
+    filename_text = "multiple_sample_seurat_object_after_celltypes.RDS",
     object_expr = datainput_multiple_celltype_level()[[1]]
   )
   #####################################link to next tab###########################     
@@ -4293,7 +4613,12 @@ server <- function(input, output, session) {
     # })
   
   
-  datainput_multiple_clusterbased_level <- eventReactive(input$multiple_sample_clusterbased,{
+  datainput_multiple_clusterbased_level <- eventReactive(list(input$multiple_sample_clusterbased, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 7)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_clusterbased", input$multiple_sample_clusterbased)) {
+      return(make_shortcut_clusterbased_result(shortcut$object))
+    }
+    require_new_analysis_click("multiple_sample_clusterbased", input$multiple_sample_clusterbased)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Cluster-based plots",
@@ -4303,7 +4628,7 @@ server <- function(input, output, session) {
         datainput_multiple_clusterbased(index_multiple_clusterbased_input = datainput_multiple_celltype_level()[[1]], index_multiple_clusterbased_features = datainput_multiple_marker_level()[[1]], index_m_celltype_method = datainput_multiple_celltype_level()[[4]], index_m_clusterbased1 = input$m_clusterbased1, index_m_clusterbased2 = input$m_clusterbased2, index_m_clusterbased3 = input$m_clusterbased3, index_m_clusterbased4 = input$m_clusterbased4, index_m_clusterbased5 = input$m_clusterbased5, index_m_clusterbased6 = input$m_clusterbased6)
       }
     )
-  })  
+  }, ignoreNULL = FALSE)  
   
   output$m_clusterbased1_plot<-renderPlot({
     datainput_multiple_clusterbased_level()[1]
@@ -4354,7 +4679,7 @@ server <- function(input, output, session) {
   output$m_clusterbased <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Cluster-Based Plots)",
-    filename_text = "multiple_sample_seuart_object_after_plots.RDS",
+    filename_text = "multiple_sample_seurat_object_after_plots.RDS",
     object_expr = datainput_multiple_clusterbased_level()[[2]]
   )
   
@@ -4402,7 +4727,7 @@ server <- function(input, output, session) {
     
     shinyWidgets::pickerInput(
       inputId = "m_conditionbased1",
-      label = "Select the Condition1",
+      label = "Select the Condition1 (Treatment)",
       choices = sort(clusters),
       multiple = F,
       options = list(`actions-box` = TRUE))
@@ -4413,7 +4738,7 @@ server <- function(input, output, session) {
     clusters <- clusters[!clusters == input$m_conditionbased1]
     shinyWidgets::pickerInput(
       inputId = "m_conditionbased2",
-      label = "Select the Condition2",
+      label = "Select the Condition2 (Control)",
       choices = sort(clusters),
       selected = sort(clusters)[1],
       multiple = F,
@@ -4422,7 +4747,12 @@ server <- function(input, output, session) {
   
   
   
-  datainput_multiple_conditionbased_level <- eventReactive(input$multiple_sample_conditionbased,{
+  datainput_multiple_conditionbased_level <- eventReactive(list(input$multiple_sample_conditionbased, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("multiple", min_rank = 7)
+    if (!is.null(shortcut) && !has_new_analysis_click("multiple_sample_conditionbased", input$multiple_sample_conditionbased)) {
+      return(make_shortcut_conditionbased_result(shortcut$object))
+    }
+    require_new_analysis_click("multiple_sample_conditionbased", input$multiple_sample_conditionbased)
     run_logged_analysis(
       section = "Multiple Samples",
       action = "Condition-based comparison",
@@ -4432,7 +4762,7 @@ server <- function(input, output, session) {
         datainput_multiple_conditionbased(index_multiple_conditionbased_input = datainput_multiple_celltype_level()[[1]], index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, index_m_conditionbased1 = input$m_conditionbased1, index_m_conditionbased2 = input$m_conditionbased2, index_m_conditionbased3 = input$m_conditionbased3, index_m_conditionbased4 = input$m_conditionbased4, index_m_conditionbased5 = input$m_conditionbased5, index_m_conditionbased6 = input$m_conditionbased6, index_m_conditionbased7 = input$m_conditionbased7, index_m_conditionbased8 = input$m_conditionbased8, index_m_conditionbased9 = input$m_conditionbased9, index_m_conditionbased10 = input$m_conditionbased10)
       }
     )
-  })  
+  }, ignoreNULL = FALSE)  
   
   output$m_conditionbased1_plot<-renderPlot({
     datainput_multiple_conditionbased_level()[1]
@@ -4483,7 +4813,7 @@ server <- function(input, output, session) {
   output$m_conditionbased <- create_object_download_handler(
     section = "Multiple Samples",
     action = "Download Seurat Object (After Condition-Based Analysis)",
-    filename_text = "multiple_sample_seuart_object_after_plots.RDS",
+    filename_text = "multiple_sample_seurat_object_after_plots.RDS",
     object_expr = datainput_multiple_conditionbased_level()[[3]]
   )
   
@@ -4955,7 +5285,12 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_subclustering_multiple_sample_level<- eventReactive(input$subclustering_multiple_sample_submit,{
+  datainput_subclustering_multiple_sample_level <- eventReactive(list(input$subclustering_multiple_sample_submit, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 1)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_submit", input$subclustering_multiple_sample_submit)) {
+      return(make_shortcut_subclustering_stats_result(shortcut$object))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_submit", input$subclustering_multiple_sample_submit)
     run_logged_analysis(
       section = "Subclustering",
       action = "Subset selected clusters or cell types",
@@ -4965,7 +5300,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_sample(index_subclustering_multiple_sample_file = datainput_multiple_celltype_level()[[1]], index_subclustering_multiple_sample_celltype = datainput_multiple_celltype_level()[[4]], index_m_subclustering1 = input$m_subclustering1, index_m_subclustering2 = input$m_subclustering2, index_m_subclustering3 = input$m_subclustering3, index_m_subclustering_4 = input$m_subclustering_4, index_m_subclustering_5 = input$m_subclustering_5)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   output$m_subclustering_qc <- renderPlot({
     datainput_subclustering_multiple_sample_level()[1]
@@ -5041,7 +5376,7 @@ server <- function(input, output, session) {
   output$m_subclustering_stats <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (Subclustering Stats)",
-    filename_text = "multiple_sample_subclustering_seuart_object.RDS",
+    filename_text = "multiple_sample_subclustering_seurat_object.RDS",
     object_expr = datainput_subclustering_multiple_sample_level()[[3]]
   )
   ###############link to next tab###########################      
@@ -5055,7 +5390,12 @@ server <- function(input, output, session) {
   
   ##########################Tab2.2###############################      
   ##############multiple Normalization & PCA###################      
-  datainput_subclustering_multiple_normalization_pca_level <- eventReactive(input$subclustering_multiple_sample_normalization,{
+  datainput_subclustering_multiple_normalization_pca_level <- eventReactive(list(input$subclustering_multiple_sample_normalization, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 2)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_normalization", input$subclustering_multiple_sample_normalization)) {
+      return(make_shortcut_normalization_result(shortcut$object))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_normalization", input$subclustering_multiple_sample_normalization)
     run_logged_analysis(
       section = "Subclustering",
       action = "Normalization and PCA",
@@ -5065,7 +5405,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_normalization_pca(index_subclustering_multiple_normalization_pca_input = datainput_subclustering_multiple_sample_level()[[3]], index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_subclustering_multiple_sample_scale_factor=input$subclustering_multiple_sample_scale_factor, index_subclustering_multiple_sample_var_genes = input$subclustering_multiple_sample_var_genes, index_subclustering_multiple_sample_var_genes1 = input$subclustering_multiple_sample_var_genes1, index_subclustering_multiple_sample_normalization_variable_genes=input$subclustering_multiple_sample_normalization_variable_genes, index_subclustering_multiple_sample_pca_dim=input$subclustering_multiple_sample_pca_dim, index_subclustering_multiple_sample_assay=input$subclustering_multiple_sample_assay)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   
   output$m_subclustering_pca_plot<-renderPlot({
@@ -5188,7 +5528,7 @@ server <- function(input, output, session) {
   output$m_subclustering_normalization <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Normalization)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_normalization.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_normalization.RDS",
     object_expr = datainput_subclustering_multiple_normalization_pca_level()[[5]]
   )
   
@@ -5202,7 +5542,14 @@ server <- function(input, output, session) {
   
   #####################################################Tab2.3####################      
   ########################################multiple Clustering###################      
-  datainput_subclustering_multiple_clustering_level <- eventReactive(input$subclustering_multiple_sample_clustering,{
+  datainput_subclustering_multiple_clustering_level <- eventReactive(list(input$subclustering_multiple_sample_clustering, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 3)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_clustering", input$subclustering_multiple_sample_clustering)) {
+      preferred_reduction <- input$m_subclustering_clustering6 %||% NULL
+      label <- if (identical(preferred_reduction, "tsne")) input$m_subclustering_clustering12 else input$m_subclustering_clustering10
+      return(make_shortcut_clustering_result(shortcut$object, preferred_reduction, label))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_clustering", input$subclustering_multiple_sample_clustering)
     run_logged_analysis(
       section = "Subclustering",
       action = "Clustering",
@@ -5212,7 +5559,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_clustering(index_subclustering_multiple_clustering_input = datainput_subclustering_multiple_normalization_pca_level()[[5]], index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_m_subclustering_clustering1 = input$m_subclustering_clustering1, index_m_subclustering_clustering2 = input$m_subclustering_clustering2, index_m_subclustering_clustering3 = input$m_subclustering_clustering3, index_m_subclustering_clustering4 = input$m_subclustering_clustering4, index_m_subclustering_clustering5 = input$m_subclustering_clustering5, index_m_subclustering_clustering6 = input$m_subclustering_clustering6, index_m_subclustering_clustering7 = input$m_subclustering_clustering7, index_m_subclustering_clustering8 = input$m_subclustering_clustering8, index_m_subclustering_clustering9 = input$m_subclustering_clustering9, index_m_subclustering_clustering10 = input$m_subclustering_clustering10, index_m_subclustering_clustering11 = input$m_subclustering_clustering11, index_m_subclustering_clustering12 = input$m_subclustering_clustering12)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   output$m_subclustering_umap_tsne1_plot<-renderPlot({
     datainput_subclustering_multiple_clustering_level()[1]
@@ -5551,7 +5898,7 @@ server <- function(input, output, session) {
   output$m_subclustering_clustering <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Clustering)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_clustering.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_clustering.RDS",
     object_expr = datainput_subclustering_multiple_clustering_level()[[10]]
   )
   
@@ -5626,7 +5973,12 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_subclustering_multiple_marker_level <- eventReactive(input$subclustering_multiple_sample_marker,{
+  datainput_subclustering_multiple_marker_level <- eventReactive(list(input$subclustering_multiple_sample_marker, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 4)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_marker", input$subclustering_multiple_sample_marker)) {
+      return(make_shortcut_marker_result(shortcut$object))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_marker", input$subclustering_multiple_sample_marker)
     run_logged_analysis(
       section = "Subclustering",
       action = "Marker identification",
@@ -5636,7 +5988,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_marker(index_subclustering_multiple_marker_input = datainput_subclustering_multiple_clustering_level()[[10]], index_m_subclustering_marker1 = input$m_subclustering_marker1, index_m_subclustering_marker2 = input$m_subclustering_marker2, index_m_subclustering_marker3 = input$m_subclustering_marker3, index_m_subclustering_marker4 = input$m_subclustering_marker4, index_m_subclustering_marker5 = input$m_subclustering_marker5, index_m_subclustering_marker6 = input$m_subclustering_marker6, index_m_subclustering_marker7 = input$m_subclustering_marker7, index_m_subclustering_marker8 = input$m_subclustering_marker8, index_m_subclustering_marker9 = input$m_subclustering_marker9, index_m_subclustering_marker10 = input$m_subclustering_marker10, index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   
   
   output$m_subclustering_marker1_table<- renderDataTable(DT::datatable((datainput_subclustering_multiple_marker_level()[[1]]),
@@ -5691,7 +6043,7 @@ server <- function(input, output, session) {
   output$m_subclustering_marker <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Marker Identification)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_marker_identification.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_marker_identification.RDS",
     object_expr = datainput_subclustering_multiple_marker_level()[[2]]
   )
   
@@ -5710,8 +6062,30 @@ server <- function(input, output, session) {
                           paste("Cluster", levels(datainput_subclustering_multiple_marker_level()[[2]])[i]), value = paste("Cluster", levels(datainput_subclustering_multiple_marker_level()[[2]])[i])))
     })
   })
+
+  observeEvent(input$m_subclustering_celltype1, {
+    if (as.character(input$m_subclustering_celltype1) == "3") {
+      updateTextInput(session, "m_subclustering_celltype_api_key", value = "")
+    }
+  }, ignoreInit = TRUE)
   
   observeEvent(input$subclustering_multiple_sample_celltype,{
+    if (as.character(input$m_subclustering_celltype1) == "3" && !nzchar(trimws(input$m_subclustering_celltype_api_key %||% ""))) {
+      shinyjs::hide("m_subclustering_celltype_box7")
+      shinyjs::hide("m_subclustering_celltype_box8")
+      shinyjs::hide("m_subclustering_celltype_box9")
+      shinyjs::hide("m_subclustering_celltype_box10")
+      shinyjs::hide("m_subclustering_celltype_box11")
+      showNotification(
+        "Paste your OpenAI API key in the GPTCelltype key box before submitting.",
+        type = "error",
+        duration = 8,
+        closeButton = TRUE
+      )
+      shinyjs::runjs("var keyInput = document.getElementById('m_subclustering_celltype_api_key'); if (keyInput) { keyInput.focus(); }")
+      return()
+    }
+
     if(input$m_subclustering_celltype1 == 1){
       shinyjs::show("m_subclustering_celltype_box7")
       shinyjs::show("m_subclustering_celltype_box8")
@@ -5753,7 +6127,24 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_subclustering_multiple_celltype_level <- eventReactive(input$subclustering_multiple_sample_celltype,{
+  datainput_subclustering_multiple_celltype_level <- eventReactive(list(input$subclustering_multiple_sample_celltype, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 5)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_celltype", input$subclustering_multiple_sample_celltype)) {
+      return(make_shortcut_celltype_result(shortcut$object, input$m_subclustering_clustering6, input$m_subclustering_celltype8))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_celltype", input$subclustering_multiple_sample_celltype)
+    gpt_api_key <- NULL
+    if (as.character(input$m_subclustering_celltype1) == "3") {
+      gpt_api_key <- trimws(isolate(input$m_subclustering_celltype_api_key %||% ""))
+      shiny::validate(shiny::need(
+        nzchar(gpt_api_key),
+        "Paste your OpenAI API key in the GPTCelltype key box before submitting."
+      ))
+      on.exit({
+        updateTextInput(session, "m_subclustering_celltype_api_key", value = "")
+        gpt_api_key <- NULL
+      }, add = TRUE)
+    }
     run_logged_analysis(
       section = "Subclustering",
       action = "Cell type annotation",
@@ -5762,10 +6153,10 @@ server <- function(input, output, session) {
         source_app_script("scripts/subclustering_multiple_celltype.R")
         datainput_subclustering_multiple_celltype(index_subclustering_multiple_celltype_input = datainput_subclustering_multiple_marker_level()[[2]], index_cell_markers = datainput_subclustering_multiple_marker_level()[[1]], index_m_subclustering_celltype1 = input$m_subclustering_celltype1, index_m_subclustering_celltype2 = input$m_subclustering_celltype2, index_m_subclustering_celltype3 = input$m_subclustering_celltype3, index_m_subclustering_celltype4 = input$m_subclustering_celltype4, index_m_subclustering_celltype5 = input$m_subclustering_celltype5, index_m_subclustering_celltype6 = input$m_subclustering_celltype6, 
                                                 index_m_subclustering_celltype7 = c(input$subclustering_mcelltypenames0,input$subclustering_mcelltypenames1,input$subclustering_mcelltypenames2,input$subclustering_mcelltypenames3,input$subclustering_mcelltypenames4,input$subclustering_mcelltypenames5,input$subclustering_mcelltypenames6,input$subclustering_mcelltypenames7,input$subclustering_mcelltypenames8,input$subclustering_mcelltypenames9,input$subclustering_mcelltypenames10,input$subclustering_mcelltypenames11,input$subclustering_mcelltypenames12,input$subclustering_mcelltypenames13,input$subclustering_mcelltypenames14,input$subclustering_mcelltypenames15,input$subclustering_mcelltypenames16,input$subclustering_mcelltypenames17,input$subclustering_mcelltypenames18,input$subclustering_mcelltypenames19,input$subclustering_mcelltypenames20,input$subclustering_mcelltypenames21,input$subclustering_mcelltypenames22,input$subclustering_mcelltypenames23,input$subclustering_mcelltypenames24,input$subclustering_mcelltypenames25,input$subclustering_mcelltypenames26,input$subclustering_mcelltypenames27,input$subclustering_mcelltypenames28,input$subclustering_mcelltypenames29,input$subclustering_mcelltypenames30,input$subclustering_mcelltypenames31,input$subclustering_mcelltypenames32,input$subclustering_mcelltypenames33,input$subclustering_mcelltypenames34,input$subclustering_mcelltypenames35,input$subclustering_mcelltypenames36,input$subclustering_mcelltypenames37,input$subclustering_mcelltypenames38,input$subclustering_mcelltypenames39,input$subclustering_mcelltypenames40,input$subclustering_mcelltypenames41,input$subclustering_mcelltypenames42,input$subclustering_mcelltypenames43,input$subclustering_mcelltypenames44,input$subclustering_mcelltypenames45,input$subclustering_mcelltypenames46,input$subclustering_mcelltypenames47,input$subclustering_mcelltypenames48,input$subclustering_mcelltypenames49,input$subclustering_mcelltypenames50,input$subclustering_mcelltypenames51,input$subclustering_mcelltypenames52,input$subclustering_mcelltypenames53,input$subclustering_mcelltypenames54,input$subclustering_mcelltypenames55,input$subclustering_mcelltypenames56,input$subclustering_mcelltypenames57,input$subclustering_mcelltypenames58,input$subclustering_mcelltypenames59,input$subclustering_mcelltypenames60,input$subclustering_mcelltypenames61,input$subclustering_mcelltypenames62,input$subclustering_mcelltypenames63,input$subclustering_mcelltypenames64,input$subclustering_mcelltypenames65,input$subclustering_mcelltypenames66,input$subclustering_mcelltypenames67,input$subclustering_mcelltypenames68,input$subclustering_mcelltypenames69,input$subclustering_mcelltypenames70,input$subclustering_mcelltypenames71,input$subclustering_mcelltypenames72,input$subclustering_mcelltypenames73,input$subclustering_mcelltypenames74,input$subclustering_mcelltypenames75,input$subclustering_mcelltypenames76,input$subclustering_mcelltypenames77,input$subclustering_mcelltypenames78,input$subclustering_mcelltypenames79,input$subclustering_mcelltypenames80,input$subclustering_mcelltypenames81,input$subclustering_mcelltypenames82,input$subclustering_mcelltypenames83,input$subclustering_mcelltypenames84,input$subclustering_mcelltypenames85,input$subclustering_mcelltypenames86,input$subclustering_mcelltypenames87,input$subclustering_mcelltypenames88,input$subclustering_mcelltypenames89,input$subclustering_mcelltypenames90,input$subclustering_mcelltypenames91,input$subclustering_mcelltypenames92,input$subclustering_mcelltypenames93,input$subclustering_mcelltypenames94,input$subclustering_mcelltypenames95,input$subclustering_mcelltypenames96,input$subclustering_mcelltypenames97,input$subclustering_mcelltypenames98,input$subclustering_mcelltypenames99), 
-                                                index_m_subclustering_celltype8 = input$m_subclustering_celltype8, index_m_subclustering_celltype9 = input$m_subclustering_celltype_splitby, index_m_subclustering_clustering6 = input$m_subclustering_clustering6, index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method)
+                                                index_m_subclustering_celltype8 = input$m_subclustering_celltype8, index_m_subclustering_celltype9 = input$m_subclustering_celltype_splitby, index_m_subclustering_clustering6 = input$m_subclustering_clustering6, index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_openai_api_key = gpt_api_key)
       }
     )
-  })
+  }, ignoreNULL = FALSE)
   output$m_subclustering_celltype1_plot<-renderPlot({
     datainput_subclustering_multiple_celltype_level()[[5]]
   })
@@ -5893,7 +6284,7 @@ server <- function(input, output, session) {
   output$m_subclustering_celltype <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Cell Type Annotation)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_celltypes.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_celltypes.RDS",
     object_expr = datainput_subclustering_multiple_celltype_level()[[1]]
   )
   #####################################link to next tab###########################     
@@ -5970,7 +6361,12 @@ server <- function(input, output, session) {
   })
   
   
-  datainput_subclustering_multiple_clusterbased_level <- eventReactive(input$subclustering_multiple_sample_clusterbased,{
+  datainput_subclustering_multiple_clusterbased_level <- eventReactive(list(input$subclustering_multiple_sample_clusterbased, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 6)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_clusterbased", input$subclustering_multiple_sample_clusterbased)) {
+      return(make_shortcut_clusterbased_result(shortcut$object))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_clusterbased", input$subclustering_multiple_sample_clusterbased)
     run_logged_analysis(
       section = "Subclustering",
       action = "Cluster-based plots",
@@ -5980,7 +6376,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_clusterbased(index_subclustering_multiple_clusterbased_input = datainput_subclustering_multiple_celltype_level()[[1]], index_subclustering_multiple_clusterbased_features = datainput_subclustering_multiple_marker_level()[[1]], index_m_subclustering_celltype_method = datainput_subclustering_multiple_celltype_level()[[4]], index_m_subclustering_clusterbased1 = input$m_subclustering_clusterbased1, index_m_subclustering_clusterbased2 = input$m_subclustering_clusterbased2, index_m_subclustering_clusterbased3 = input$m_subclustering_clusterbased3, index_m_subclustering_clusterbased4 = input$m_subclustering_clusterbased4, index_m_subclustering_clusterbased5 = input$m_subclustering_clusterbased5, index_m_subclustering_clusterbased6 = input$m_subclustering_clusterbased6)
       }
     )
-  })  
+  }, ignoreNULL = FALSE)  
   
   output$m_subclustering_clusterbased1_plot<-renderPlot({
     datainput_subclustering_multiple_clusterbased_level()[1]
@@ -6031,7 +6427,7 @@ server <- function(input, output, session) {
   output$m_subclustering_clusterbased <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Cluster-Based Plots)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_plots.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_plots.RDS",
     object_expr = datainput_subclustering_multiple_clusterbased_level()[[2]]
   )
   
@@ -6079,7 +6475,7 @@ server <- function(input, output, session) {
     
     shinyWidgets::pickerInput(
       inputId = "m_subclustering_conditionbased1",
-      label = "Select the Condition1",
+      label = "Select the Condition1 (Treatment)",
       choices = sort(clusters),
       multiple = F,
       options = list(`actions-box` = TRUE))
@@ -6090,7 +6486,7 @@ server <- function(input, output, session) {
     clusters <- clusters[!clusters == input$m_subclustering_conditionbased1]
     shinyWidgets::pickerInput(
       inputId = "m_subclustering_conditionbased2",
-      label = "Select the Condition2",
+      label = "Select the Condition2 (Control)",
       choices = sort(clusters),
       selected = sort(clusters)[1],
       multiple = F,
@@ -6106,7 +6502,12 @@ server <- function(input, output, session) {
     }
   }) 
   
-  datainput_subclustering_multiple_conditionbased_level <- eventReactive(input$subclustering_multiple_sample_conditionbased,{
+  datainput_subclustering_multiple_conditionbased_level <- eventReactive(list(input$subclustering_multiple_sample_conditionbased, uploaded_seurat_shortcut()), {
+    shortcut <- get_uploaded_shortcut("subclustering", min_rank = 6)
+    if (!is.null(shortcut) && !has_new_analysis_click("subclustering_multiple_sample_conditionbased", input$subclustering_multiple_sample_conditionbased)) {
+      return(make_shortcut_conditionbased_result(shortcut$object))
+    }
+    require_new_analysis_click("subclustering_multiple_sample_conditionbased", input$subclustering_multiple_sample_conditionbased)
     run_logged_analysis(
       section = "Subclustering",
       action = "Condition-based comparison",
@@ -6116,7 +6517,7 @@ server <- function(input, output, session) {
         datainput_subclustering_multiple_conditionbased(index_subclustering_multiple_conditionbased_input = datainput_subclustering_multiple_celltype_level()[[1]], index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_m_subclustering_conditionbased1 = input$m_subclustering_conditionbased1, index_m_subclustering_conditionbased2 = input$m_subclustering_conditionbased2, index_m_subclustering_conditionbased3 = input$m_subclustering_conditionbased3, index_m_subclustering_conditionbased4 = input$m_subclustering_conditionbased4, index_m_subclustering_conditionbased5 = input$m_subclustering_conditionbased5, index_m_subclustering_conditionbased6 = input$m_subclustering_conditionbased6, index_m_subclustering_conditionbased7 = input$m_subclustering_conditionbased7, index_m_subclustering_conditionbased8 = input$m_subclustering_conditionbased8, index_m_subclustering_conditionbased9 = input$m_subclustering_conditionbased9, index_m_subclustering_conditionbased10 = input$m_subclustering_conditionbased10)
       }
     )
-  })  
+  }, ignoreNULL = FALSE)  
   
   output$m_subclustering_conditionbased1_plot<-renderPlot({
     datainput_subclustering_multiple_conditionbased_level()[1]
@@ -6167,7 +6568,7 @@ server <- function(input, output, session) {
   output$m_subclustering_conditionbased <- create_object_download_handler(
     section = "Subclustering",
     action = "Download Seurat Object (After Condition-Based Analysis)",
-    filename_text = "subclustering_multiple_sample_seuart_object_after_plots.RDS",
+    filename_text = "subclustering_multiple_sample_seurat_object_after_plots.RDS",
     object_expr = datainput_subclustering_multiple_conditionbased_level()[[3]]
   )
   
@@ -8445,6 +8846,7 @@ server <- function(input, output, session) {
 <li><b>Visium HD Bin data layout:</b> include the binned_outputs folder together with the spatial folder inside the sample ZIP. Supported bin folders are square_008um, square_016um, and square_002um; choose 8 um, 16 um, or 2 um in the bin-size selector.</li>
 <li><b>Fallback behavior:</b> if a sample does not contain Visium HD bins, the app automatically loads the standard spatial structure instead.</li>
 <li><b>Upload Space Ranger Matrix Files (mtx, features, barcodes) and spatial image folder</b>  Space Ranger files: matrix.mtx.gz, feature.tsv.gz, barcode.tsv.gz, spatial image folder and zip it to single folder for each samples.</li>
+<li><b>Previously generated VST-DAVis Seurat object:</b> choose an RDS downloaded by VST-DAVis without renaming it, then click <b>Submit</b>. The filename identifies and restores the completed workflow page.</li>
     </ul>
     "),
       easyClose = TRUE,
@@ -8550,7 +8952,8 @@ server <- function(input, output, session) {
 <li><b>DE method for SingleR</b> (Default: classic) – SingleR Differential expression method used for prediction scoring. (classi, wilcox, t test).</li>
 <li><b>Reference data for ScType</b> (Default: Immune system) – Selected cell type reference for matching.</li>
 <li><b>Top genes for prediction for GPTCelltype</b> (Default: 10) – Number of top genes used for GPTCelltype or other predictions.</li>
-<li><b>Modelfor GPTCelltype</b> (Default: gpt-5, gpt-5-mini, gpt-5-nano, gpt-4, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.) – OpenAI models available in GPTCelltype. Available via the web platform. To use it locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file</li>
+<li><b>Model for GPTCelltype</b> (Default: GPT-5.6 Terra) – Current OpenAI model families are available in the selector. Model access depends on the user's OpenAI account.</li>
+<li><b>OpenAI API key</b> – Paste a key into the password field for each GPTCelltype run. The key is used only for that analysis, then cleared and disabled in VST-DAVis. It is not stored, logged, reused, or shared with other users.</li>
 <li><b>Use Own Labels</b> Default: Cluster 0 to Cluster N) — This option allows users to manually assign custom names to clusters. Users may enter identical names for two or more clusters if they wish to merge them into a single group.</li>
     </ul>
     "),
@@ -8675,7 +9078,8 @@ server <- function(input, output, session) {
 <li><b>DE method for SingleR</b> (Default: classic) – SingleR Differential expression method used for prediction scoring. (classi, wilcox, t test).</li>
 <li><b>Reference data for ScType</b> (Default: Immune system) – Selected cell type reference for matching.</li>
 <li><b>Top genes for prediction for GPTCelltype</b> (Default: 10) – Number of top genes used for GPTCelltype or other predictions.</li>
-<li><b>Modelfor GPTCelltype</b> (Default: gpt-5, gpt-5-mini, gpt-5-nano, gpt-4, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, etc.) – OpenAI models available in GPTCelltype.</li>
+<li><b>Model for GPTCelltype</b> (Default: GPT-5.6 Terra) – Current OpenAI model families are available in the selector. Model access depends on the user's OpenAI account.</li>
+<li><b>OpenAI API key</b> – Paste a key into the password field for each GPTCelltype run. The key is used only for that analysis, then cleared and disabled in VST-DAVis. It is not stored, logged, reused, or shared with other users.</li>
 <li><b>Use Own Labels</b> Default: Cluster 0 to Cluster N) — This option allows users to manually assign custom names to clusters. Users may enter identical names for two or more clusters if they wish to merge them into a single group.</li>
    
     </ul>"),

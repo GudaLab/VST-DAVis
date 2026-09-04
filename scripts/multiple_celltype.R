@@ -1,4 +1,4 @@
-datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cell_markers, index_m_celltype1, index_m_celltype2, index_m_celltype3, index_m_celltype4, index_m_celltype5, index_m_celltype6, index_m_celltype7, index_m_celltype8, index_m_celltype9, index_m_clustering6, index_multiple_sample_normalization_method){
+datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cell_markers, index_m_celltype1, index_m_celltype2, index_m_celltype3, index_m_celltype4, index_m_celltype5, index_m_celltype6, index_m_celltype7, index_m_celltype8, index_m_celltype9, index_m_clustering6, index_multiple_sample_normalization_method, index_openai_api_key = NULL){
   source_app_script("scripts/assay_utils.R")
   multiple_sample_clustering <- index_multiple_celltype_input
   multiple_sample_clustering_markers <- index_cell_markers
@@ -251,7 +251,13 @@ datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cel
   }
 
   if (as.character(index_m_celltype1) == "3") {
-    res <- gptcelltype(multiple_sample_clustering_markers, model = index_m_celltype5, topgenenumber = index_m_celltype6)
+    source_app_script("scripts/gptcelltype_with_key.R", local = environment())
+    res <- gptcelltype_with_key(
+      multiple_sample_clustering_markers,
+      api_key = index_openai_api_key,
+      model = index_m_celltype5,
+      topgenenumber = index_m_celltype6
+    )
     multiple_sample_clustering@meta.data$GPTCelltype <- sanitize_annotation_values(
       res[as.character(Seurat::Idents(multiple_sample_clustering))]
     )

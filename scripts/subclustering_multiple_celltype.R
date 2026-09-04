@@ -1,4 +1,4 @@
-datainput_subclustering_multiple_celltype <- function(index_subclustering_multiple_celltype_input, index_cell_markers, index_m_subclustering_celltype1, index_m_subclustering_celltype2, index_m_subclustering_celltype3, index_m_subclustering_celltype4, index_m_subclustering_celltype5, index_m_subclustering_celltype6, index_m_subclustering_celltype7, index_m_subclustering_celltype8, index_m_subclustering_celltype9, index_m_subclustering_clustering6, index_subclustering_multiple_sample_normalization_method){
+datainput_subclustering_multiple_celltype <- function(index_subclustering_multiple_celltype_input, index_cell_markers, index_m_subclustering_celltype1, index_m_subclustering_celltype2, index_m_subclustering_celltype3, index_m_subclustering_celltype4, index_m_subclustering_celltype5, index_m_subclustering_celltype6, index_m_subclustering_celltype7, index_m_subclustering_celltype8, index_m_subclustering_celltype9, index_m_subclustering_clustering6, index_subclustering_multiple_sample_normalization_method, index_openai_api_key = NULL){
   source_app_script("scripts/assay_utils.R")
   subclustering_multiple_sample_clustering <- index_subclustering_multiple_celltype_input
   subclustering_multiple_sample_clustering_markers <- index_cell_markers
@@ -251,7 +251,13 @@ datainput_subclustering_multiple_celltype <- function(index_subclustering_multip
   }
 
   if (as.character(index_m_subclustering_celltype1) == "3") {
-    res <- gptcelltype(subclustering_multiple_sample_clustering_markers, model = index_m_subclustering_celltype5, topgenenumber = index_m_subclustering_celltype6)
+    source_app_script("scripts/gptcelltype_with_key.R", local = environment())
+    res <- gptcelltype_with_key(
+      subclustering_multiple_sample_clustering_markers,
+      api_key = index_openai_api_key,
+      model = index_m_subclustering_celltype5,
+      topgenenumber = index_m_subclustering_celltype6
+    )
     subclustering_multiple_sample_clustering@meta.data$GPTCelltype <- sanitize_annotation_values(
       res[as.character(Seurat::Idents(subclustering_multiple_sample_clustering))]
     )

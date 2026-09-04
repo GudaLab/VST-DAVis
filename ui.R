@@ -7,6 +7,26 @@ library(shinyWidgets)
 library(shinycssloaders)
 library(shinydashboard)
 
+gpt_celltype_model_choices <- c(
+  "GPT-6 Astra (limited rollout)" = "gpt-6-astra",
+  "GPT-5.6 Sol" = "gpt-5.6-sol",
+  "GPT-5.6 Terra" = "gpt-5.6-terra",
+  "GPT-5.6 Luna" = "gpt-5.6-luna",
+  "GPT-5.5" = "gpt-5.5",
+  "GPT-5.4" = "gpt-5.4",
+  "GPT-5.4 Mini" = "gpt-5.4-mini",
+  "GPT-5.4 Nano" = "gpt-5.4-nano",
+  "GPT-5.2" = "gpt-5.2",
+  "GPT-5.1" = "gpt-5.1",
+  "GPT-5" = "gpt-5",
+  "GPT-5 Mini" = "gpt-5-mini",
+  "GPT-5 Nano" = "gpt-5-nano",
+  "GPT-4.1" = "gpt-4.1",
+  "GPT-4.1 Mini" = "gpt-4.1-mini",
+  "GPT-4o" = "gpt-4o",
+  "GPT-4o Mini" = "gpt-4o-mini"
+)
+
 
 shinythemes::themeSelector()
 timeoutSeconds <- 86400
@@ -161,13 +181,14 @@ shiny::tags$head(
  sidebarLayout(
    sidebarPanel(id="multiple_sidebar",
      actionButton("info_btn1", "Help", icon = icon("info-circle"), style = "margin-top: 5px;", title = "File upload and Stats"),
-     selectInput("multiple_sample_format", label = "Select Input format", choices = list("SpaceRanger h5" = "h5", "SpaceRanger Matrix, Feature, Barcodes and spatial image files" ="MFB", "Visium HD Bin data" = "visium_bin", "Example data to test the tool (GSE230207)"="exampledata" ), selected = "h5"),
+     selectInput("multiple_sample_format", label = "Select Input format", choices = list("SpaceRanger h5" = "h5", "SpaceRanger Matrix, Feature, Barcodes and spatial image files" ="MFB", "Visium HD Bin data" = "visium_bin", "Previously generated VST-DAVis Seurat object" = "saved_seurat_object", "Example data to test the tool (GSE230207)"="exampledata" ), selected = "h5"),
      selectInput("multiple_sample_spatial_mode", label = "Spatial loading mode", choices = list("Auto detect Visium HD bins or standard spatial" = "auto", "Visium HD binned outputs" = "visium_hd"), selected = "auto"),
      selectInput("multiple_sample_hd_bin_size", label = "Visium HD bin size", choices = list("8 um" = "8", "16 um" = "16", "2 um" = "2"), selected = "8"),
      div(id = "multiple_sample_hd_hint", helpText("If a sample does not contain Visium HD binned outputs, the app will fall back to the standard spatial file structure automatically.")),
      
-     h5("Upload multiple samples, each in its own ZIP file"),
+     uiOutput("multiple_sample_upload_heading"),
      uiOutput("multiple_sample_file_ui"),
+     uiOutput("saved_seurat_object_message"),
      fileInput("multiple_sample_file_mfb", label = "Upload multiple files at once (eg: matrix.mtx.gz, features.tsv, barcodes.tsv.gz and spatial image in zip format)", multiple = T, accept ="zip"),
     actionBttn("multiple_sample_submit", "Submit",  style = "unite",color = "primary"),
      width = 3),
@@ -697,7 +718,7 @@ tabPanel(
   fluidRow(   
     box(id = "m_celltype_box1",
         h3("Predict Cell Type "),
-        h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype. To use GPTCelltype locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file"),
+        h5("Please make sure 'Identify markers in all clusters' was run in the previous step before using GPTCelltype."),
         column(6, selectInput("m_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 2)),
     ),
   ),
@@ -715,8 +736,23 @@ tabPanel(
   ),  
   fluidRow(   
     box(id = "m_celltype_box4",                      
-        column(6, selectInput("m_celltype5", label = "Select model", choices = c("gpt-5.4" = "gpt-5.4","gpt-5.2" = "gpt-5.2","gpt-5" = "gpt-5","gpt-5-mini" = "gpt-5-mini","gpt-5-nano" = "gpt-5-nano","gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-5")),  
+        column(6, selectInput("m_celltype5", label = "Select model", choices = gpt_celltype_model_choices, selected = "gpt-5.6-terra")),  
         column(6, numericInput("m_celltype6", label = "Top gene numbers to predict cell type",  min = 1, max = 25, value = 10)),  
+        column(
+          12,
+          passwordInput(
+            "m_celltype_api_key",
+            label = "OpenAI API key (required for this GPTCelltype run)",
+            value = "",
+            width = "100%",
+            placeholder = "Paste your OpenAI API key"
+          ),
+          tags$p(
+            class = "text-info",
+            tags$strong("Key privacy: "),
+            "Your key is used only for this GPTCelltype analysis. It will be disabled in VST-DAVis and cleared from this session when the run finishes. It is not stored, logged, reused, or shared with other users."
+          )
+        )
     ),
   ),
   fluidRow(   
@@ -1273,7 +1309,7 @@ tabPanel(
                   fluidRow(   
                     box(id = "m_subclustering_celltype_box1",
                         h3("Predict Cell Type "),
-                        h5("Please make sure 'Identify markers in all clusters' were runned in the previous step, if you are using GPTCelltype"),
+                        h5("Please make sure 'Identify markers in all clusters' was run in the previous step before using GPTCelltype."),
                         column(6, selectInput("m_subclustering_celltype1", label = "Cell type prediction method", choices = c("ScType" = 1, "SingleR" = 2, "GPTCelltype" = 3, "Use Own Labels" = 4), selected = 2)),
                     ),
                   ),
@@ -1291,8 +1327,23 @@ tabPanel(
                   ),  
                   fluidRow(   
                     box(id = "m_subclustering_celltype_box4",                      
-                        column(6, selectInput("m_subclustering_celltype5", label = "Select model", choices = c("gpt-5.4" = "gpt-5.4","gpt-5.2" = "gpt-5.2", "gpt-5" = "gpt-5","gpt-5-mini" = "gpt-5-mini","gpt-5-nano" = "gpt-5-nano","gpt-4"="gpt-4","gpt-4-turbo"="gpt-4-turbo","gpt-4o-mini"="gpt-4o-mini","gpt-4o"="gpt-4o","chatgpt-4o-latest"="chatgpt-4o-latest","gpt-3.5-turbo"="gpt-3.5-turbo"), selected = "gpt-5")),  
+                        column(6, selectInput("m_subclustering_celltype5", label = "Select model", choices = gpt_celltype_model_choices, selected = "gpt-5.6-terra")),  
                         column(6, numericInput("m_subclustering_celltype6", label = "Top gene numbers to predict cell type",  min = 1, max = 25, value = 10)),  
+                        column(
+                          12,
+                          passwordInput(
+                            "m_subclustering_celltype_api_key",
+                            label = "OpenAI API key (required for this GPTCelltype run)",
+                            value = "",
+                            width = "100%",
+                            placeholder = "Paste your OpenAI API key"
+                          ),
+                          tags$p(
+                            class = "text-info",
+                            tags$strong("Key privacy: "),
+                            "Your key is used only for this GPTCelltype analysis. It will be disabled in VST-DAVis and cleared from this session when the run finishes. It is not stored, logged, reused, or shared with other users."
+                          )
+                        )
                     ),
                   ),
                   fluidRow(   
@@ -2171,6 +2222,13 @@ tabPanel(
   <li>Example ZIP structure: Sample_1/binned_outputs/square_008um/filtered_feature_bc_matrix.h5 and Sample_1/spatial/ with the matching tissue image and spatial metadata files.</li>
   <li>If the app is set to auto-detect and Visium HD binned outputs are not found, it falls back to the standard Space Ranger spatial layout when available.</li>
 </ul>
+
+  <li><strong>Previously generated VST-DAVis Seurat object</strong></li>
+<ul>
+  <li>Upload an RDS file downloaded from a VST-DAVis analysis page without renaming it.</li>
+  <li>The filename is validated exactly and identifies the completed main-analysis or subclustering stage.</li>
+  <li>Choose the file and click <strong>Submit</strong>. VST-DAVis then restores the available earlier stages and opens the matching analysis page.</li>
+</ul>
 </ol>
 <img src='images/folder_image.jpg' width='1000' height='600' alt=''/>
 <p><strong>Data Size and Handling:</strong></p>
@@ -2488,9 +2546,9 @@ tabPanel(
      </ul>
     <li><strong>GPTCelltype:</strong></li>
       <ul>
-         <li>GPT Models: Utilizes various GPT models, including: GPT-5, GPT-5-mini, GPT-5-nano, GPT-4, GPT-4-turbo, GPT-4o-mini, GPT-4o, ChatGPT-4o-latest, GPT-3.5-turbo, GPT-3.5-turbo.</li>
+         <li>GPT Models: Supports current GPT models shown in the model selector, including GPT-6 Astra and the GPT-5.6, GPT-5.5, and GPT-5.4 families. Model access depends on the user's OpenAI account.</li>
          <li>Gene Requirements: Requires a minimum number of top genes for accurate prediction.</li>
-         <li>Availability: Available via the web platform. To use it locally, users need to update their API key by setting Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key') in the global.R file.</li>
+         <li>API Key: Select GPTCelltype and paste an OpenAI API key into the password field. The key is used only for that analysis, then cleared and disabled in VST-DAVis; it is not stored, logged, reused, or shared with other users.</li>
       </ul>
   <li><strong>Own Cell Labels:</strong></li>
       <ul>
