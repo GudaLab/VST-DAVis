@@ -17,7 +17,10 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input,
                                          index_multiple_sample_max_count,
                                          index_multiple_sample_min_ncount = 0,
                                          index_multiple_sample_max_ncount = Inf,
-                                         index_multiple_sample_max_mito_perc) {
+                                         index_multiple_sample_max_mito_perc,
+                                         index_multiple_sample_min_cells = 0) {
+  source_app_script("scripts/assay_utils.R", local = environment())
+
   `%||%` <- function(x, y) {
     if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) {
       return(y)
@@ -53,6 +56,38 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input,
   first_existing_column <- function(meta, candidates) {
     found <- candidates[candidates %in% colnames(meta)]
     found[[1]] %||% NA_character_
+  }
+
+  count_cells_expressing_each_feature <- function(object, assay_name) {
+    assay_object <- object[[assay_name]]
+    feature_names <- rownames(assay_object)
+    detection_counts <- stats::setNames(integer(length(feature_names)), feature_names)
+    layer_names <- tryCatch(SeuratObject::Layers(assay_object), error = function(e) character(0))
+    count_layers <- grep("^counts($|\\.)", layer_names, value = TRUE)
+
+    if (!length(count_layers)) {
+      counts <- get_assay_layer_matrix(
+        object = object,
+        assay = assay_name,
+        layer = "counts",
+        slot_fallback = "counts",
+        as_sparse = TRUE
+      )
+      return(Matrix::rowSums(counts > 0))
+    }
+
+    for (layer_name in count_layers) {
+      counts <- SeuratObject::LayerData(
+        object = object,
+        assay = assay_name,
+        layer = layer_name
+      )
+      layer_detection_counts <- Matrix::rowSums(counts > 0)
+      layer_features <- names(layer_detection_counts)
+      detection_counts[layer_features] <- detection_counts[layer_features] + layer_detection_counts
+    }
+
+    detection_counts
   }
 
   merge_selected_samples <- function(sample_names, sample_list, project_name) {
@@ -164,12 +199,15 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input,
   min_count <- suppressWarnings(as.numeric(index_multiple_sample_min_ncount %||% 0))
   max_count <- suppressWarnings(as.numeric(index_multiple_sample_max_ncount %||% Inf))
   max_mito <- suppressWarnings(as.numeric(index_multiple_sample_max_mito_perc %||% Inf))
+  min_cells <- suppressWarnings(as.numeric(index_multiple_sample_min_cells %||% 0))
 
   if (is.na(min_feature)) min_feature <- 0
   if (is.na(max_feature)) max_feature <- Inf
   if (is.na(min_count)) min_count <- 0
   if (is.na(max_count)) max_count <- Inf
   if (is.na(max_mito)) max_mito <- Inf
+  if (!is.finite(min_cells) || min_cells < 0) min_cells <- 0
+  min_cells <- as.integer(ceiling(min_cells))
 
   keep_cells <- group_level_object@meta.data[[feature_col]] >= min_feature &
     group_level_object@meta.data[[feature_col]] <= max_feature &
@@ -182,6 +220,33 @@ datainput_multiple_qc_filter <- function(index_multiple_qc_input,
   }
 
   groups_merged <- subset(group_level_object, cells = rownames(group_level_object@meta.data)[keep_cells])
+
+  if (min_cells > 0L) {
+    assay_names <- tryCatch(Seurat::Assays(groups_merged), error = function(e) character(0))
+    feature_filter_assay <- if ("Spatial" %in% assay_names) {
+      "Spatial"
+    } else {
+      Seurat::DefaultAssay(groups_merged)
+    }
+    detection_counts <- count_cells_expressing_each_feature(groups_merged, feature_filter_assay)
+    keep_features <- names(detection_counts)[detection_counts >= min_cells]
+
+    if (!length(keep_features)) {
+      stop(
+        "No genes remain after applying min.cells = ", min_cells,
+        ". Please lower the minimum cells threshold."
+      )
+    }
+
+    removed_feature_count <- length(detection_counts) - length(keep_features)
+    if (removed_feature_count > 0L) {
+      groups_merged <- subset(groups_merged, features = keep_features)
+      message(
+        "min.cells = ", min_cells, " removed ", removed_feature_count,
+        " genes detected in too few retained spots/bins."
+      )
+    }
+  }
 
   groups_table1 <- table(group_level_object$orig.ident) %>% as.data.frame()
   colnames(groups_table1) <- c("Samples", "Cell counts before QC")

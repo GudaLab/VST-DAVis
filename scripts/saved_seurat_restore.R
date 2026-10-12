@@ -853,7 +853,21 @@ make_shortcut_celltype_result <- function(object, preferred_reduction = NULL, la
     shortcut_count_table(object, annotation_column, "Cell type", "Cell counts")
   }
 
-  list(
+  summary_outputs <- tryCatch(
+    {
+      if (!exists("build_celltype_summary_outputs", mode = "function")) {
+        source_app_script("scripts/celltype_summary.R", local = environment())
+      }
+      summary_object <- object
+      if ("seurat_clusters" %in% colnames(summary_object@meta.data)) {
+        Seurat::Idents(summary_object) <- "seurat_clusters"
+      }
+      build_celltype_summary_outputs(summary_object, annotation_column, shortcut_marker_table(object))
+    },
+    error = function(e) list(celltype_counts = NULL, celltype_markers = NULL, celltype_heatmap = NULL)
+  )
+
+  c(list(
     data1 = object,
     data2 = unique(as.character(metadata$seurat_clusters)),
     data3 = unique(as.character(metadata[[annotation_column]])),
@@ -871,7 +885,7 @@ make_shortcut_celltype_result <- function(object, preferred_reduction = NULL, la
       "plot4",
       "The additional cell type diagnostic plot was not stored in the uploaded Seurat object."
     )
-  )
+  ), summary_outputs)
 }
 
 make_shortcut_clusterbased_result <- function(object) {

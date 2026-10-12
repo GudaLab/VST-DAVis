@@ -1,5 +1,16 @@
 datainput_subclustering_multiple_clusterbased <- function(index_subclustering_multiple_clusterbased_input, index_subclustering_multiple_clusterbased_features, index_m_subclustering_celltype_method, index_m_subclustering_clusterbased1, index_m_subclustering_clusterbased2, index_m_subclustering_clusterbased3, index_m_subclustering_clusterbased4, index_m_subclustering_clusterbased5, index_m_subclustering_clusterbased6) {
   subclustering_multiple_sample_clustering <- index_subclustering_multiple_clusterbased_input
+  # group.by = "predicted": plot only the cell type names picked in
+  # "Select one or multiple cluster(s) for plotting" (all names when nothing valid is picked).
+  predicted_plot_object <- subclustering_multiple_sample_clustering
+  predicted_idents <- NULL
+  if (identical(as.character(index_m_subclustering_clusterbased4), "predicted") && isTRUE(index_m_subclustering_celltype_method %in% colnames(subclustering_multiple_sample_clustering@meta.data))) {
+    Idents(predicted_plot_object) <- index_m_subclustering_celltype_method
+    predicted_selection <- base::intersect(as.character(index_m_subclustering_clusterbased6), as.character(unique(predicted_plot_object@meta.data[[index_m_subclustering_celltype_method]])))
+    if (length(predicted_selection) > 0) {
+      predicted_idents <- predicted_selection
+    }
+  }
   if (index_m_subclustering_clusterbased1 == "gene_name_list" & index_m_subclustering_clusterbased5 == "NULL"){
     top_markers_plot <- unlist(strsplit(index_m_subclustering_clusterbased2, ","))
     
@@ -19,10 +30,10 @@ datainput_subclustering_multiple_clusterbased <- function(index_subclustering_mu
     }
 	
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "Dot Plot") {
-      plots43 <- DotPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, group.by = index_m_subclustering_celltype_method) + coord_flip()
+      plots43 <- DotPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, group.by = index_m_subclustering_celltype_method) + coord_flip()
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "VlnPlot") {
-      plots43 <- VlnPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
+      plots43 <- VlnPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "FeaturePlot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_celltype_method
@@ -55,14 +66,14 @@ datainput_subclustering_multiple_clusterbased <- function(index_subclustering_mu
     }
 	
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "Dot Plot") {
-      plots43 <- DotPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, group.by = index_m_subclustering_celltype_method) + coord_flip()
+      plots43 <- DotPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, group.by = index_m_subclustering_celltype_method) + coord_flip()
     }
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "spatial_plot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_clusterbased4
 	  plots43 <- SpatialFeaturePlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = length(unique(subclustering_multiple_sample_clustering$orig.ident)))
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "VlnPlot") {
-      plots43 <- VlnPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
+      plots43 <- VlnPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "FeaturePlot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_celltype_method
@@ -88,14 +99,14 @@ datainput_subclustering_multiple_clusterbased <- function(index_subclustering_mu
     }
 	
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "Dot Plot") {
-      plots43 <- DotPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5, cols=c(rep("blue",150), "white")) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
+      plots43 <- DotPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5, cols=c(rep("blue",150), "white")) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
     }
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "spatial_plot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_clusterbased4
 	  plots43 <- SpatialFeaturePlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = length(unique(subclustering_multiple_sample_clustering$orig.ident)))+ theme(legend.position = 'right')
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "VlnPlot") {
-      plots43 <- VlnPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5)+ theme(legend.position = 'right')
+      plots43 <- VlnPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5)+ theme(legend.position = 'right')
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "FeaturePlot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_celltype_method
@@ -123,14 +134,14 @@ datainput_subclustering_multiple_clusterbased <- function(index_subclustering_mu
     }
 	
 	if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "Dot Plot") {
-      plots43 <- DotPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5, cols=c(rep("blue",150), "white")) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
+      plots43 <- DotPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5, cols=c(rep("blue",150), "white")) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
     }
 	else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "spatial_plot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_clusterbased4
 	  plots43 <- SpatialFeaturePlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = length(unique(subclustering_multiple_sample_clustering$orig.ident)))+ theme(legend.position = 'right')
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "VlnPlot") {
-      plots43 <- VlnPlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5)+ theme(legend.position = 'right')
+      plots43 <- VlnPlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method, split.by = index_m_subclustering_clusterbased5)+ theme(legend.position = 'right')
     }
     else if(index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased3 == "FeaturePlot") {
       Idents(subclustering_multiple_sample_clustering) <- index_m_subclustering_celltype_method
@@ -153,14 +164,14 @@ datainput_subclustering_multiple_clusterbased <- function(index_subclustering_mu
   
   else if (index_m_subclustering_clusterbased4 == "predicted" & index_m_subclustering_clusterbased1 == "gene_name_list" & index_m_subclustering_clusterbased3 == "RidgePlot"){
     top_markers_plot <- unlist(strsplit(index_m_subclustering_clusterbased2, ","))
-    plots43 <- RidgePlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
+    plots43 <- RidgePlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
   }
   else if (index_m_subclustering_clusterbased4 == "predicted" & (index_m_subclustering_clusterbased1 == 1 | index_m_subclustering_clusterbased1 == 2 | index_m_subclustering_clusterbased1 == 3 | index_m_subclustering_clusterbased1 == 4 | index_m_subclustering_clusterbased1 == 5 | index_m_subclustering_clusterbased1 == 6 | index_m_subclustering_clusterbased1 == 7 | index_m_subclustering_clusterbased1 == 8 | index_m_subclustering_clusterbased1 == 9 | index_m_subclustering_clusterbased1 == 10) &  index_m_subclustering_clusterbased3 == "RidgePlot"){
     index_m_subclustering_clusterbased1 <- as.numeric(index_m_subclustering_clusterbased1)
     subclustering_multiple_sample_clustering_markers <- index_subclustering_multiple_clusterbased_features
     top_markers <- subclustering_multiple_sample_clustering_markers %>% group_by(cluster) %>%  slice_max(n = index_m_subclustering_clusterbased1, order_by = avg_log2FC)
     top_markers_plot <- unique(top_markers$gene)
-    plots43 <- RidgePlot(subclustering_multiple_sample_clustering, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
+    plots43 <- RidgePlot(predicted_plot_object, idents = predicted_idents, features = top_markers_plot, ncol = 5, group.by = index_m_subclustering_celltype_method)
   } 
   
   

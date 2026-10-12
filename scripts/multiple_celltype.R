@@ -1,5 +1,6 @@
 datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cell_markers, index_m_celltype1, index_m_celltype2, index_m_celltype3, index_m_celltype4, index_m_celltype5, index_m_celltype6, index_m_celltype7, index_m_celltype8, index_m_celltype9, index_m_clustering6, index_multiple_sample_normalization_method, index_openai_api_key = NULL){
   source_app_script("scripts/assay_utils.R")
+  source_app_script("scripts/celltype_summary.R")
   multiple_sample_clustering <- index_multiple_celltype_input
   multiple_sample_clustering_markers <- index_cell_markers
   index_m_celltype8 <- isTRUE(as.logical(index_m_celltype8))
@@ -157,7 +158,7 @@ datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cel
     if (is.null(extra_plot2)) {
       extra_plot2 <- make_message_plot(placeholder_text)
     }
-    list(
+    c(list(
       data1 = obj,
       data2 = unique(obj@meta.data$seurat_clusters),
       data3 = annotation_values,
@@ -167,7 +168,7 @@ datainput_multiple_celltype <- function(index_multiple_celltype_input, index_cel
       table1 = as.data.frame(table_data),
       plot3 = extra_plot1,
       plot4 = extra_plot2
-    )
+    ), build_celltype_summary_outputs(obj, annotation_field, multiple_sample_clustering_markers))
   }
 
   if (as.character(index_m_celltype1) == "1") {

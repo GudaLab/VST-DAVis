@@ -18,6 +18,7 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
 
   source_app_script("scripts/assay_utils.R")
   source_app_script("scripts/visium_hd_compat_loader.R")
+  source_app_script("scripts/visium_hd_segmentation_loader.R")
 
   normalize_counts_input <- function(counts) {
     if (inherits(counts, "dgCMatrix")) {
@@ -118,12 +119,22 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
     unique(sampled_cells)
   }
 
+  spatial_unit_label <- function(obj) {
+    source_mode <- tryCatch(as.character(obj$spatial_source_mode), error = function(e) character(0))
+    source_mode <- source_mode[!is.na(source_mode)]
+    if (length(source_mode) && all(source_mode == visium_hd_seg_source_mode)) {
+      return("segmented cells")
+    }
+    "spatial bins/spots"
+  }
+
   create_display_object <- function(obj, max_cells = Inf) {
     display_cells <- sample_cells_for_display(obj, max_cells = max_cells)
+    unit_label <- spatial_unit_label(obj)
     if (length(display_cells) == ncol(obj)) {
       return(list(
         object = obj,
-        message = paste0("QC plots were generated on all ", format(ncol(obj), big.mark = ","), " spatial bins/spots.")
+        message = paste0("QC plots were generated on all ", format(ncol(obj), big.mark = ","), " ", unit_label, ".")
       ))
     }
 
@@ -135,7 +146,7 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
         format(length(display_cells), big.mark = ","),
         " of ",
         format(ncol(obj), big.mark = ","),
-        " spatial bins/spots to keep the app stable; the full Seurat object is retained for analysis."
+        " ", unit_label, " to keep the app stable; the full Seurat object is retained for analysis."
       )
     )
   }
@@ -460,6 +471,13 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
       return(list(dir = visium_hd_hit$dir[[1]], type = "visium_hd"))
     }
 
+    if (visium_hd_seg_has_outputs(root_dir)) {
+      stop(
+        "This upload contains Visium HD cell segmentation results (segmented_outputs) but no spot or bin matrix. ",
+        "Select 'Visium HD Cell segmentation data' as the input format."
+      )
+    }
+
     stop("Could not locate a supported sample layout inside the uploaded directory or ZIP.")
   }
 
@@ -782,6 +800,48 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
     })
 
     names(spatial_objects) <- sub("\\.zip$", "", basename(zip_names))
+  } else if (index_multiple_sample_format == "visium_seg") {
+    zip_paths <- index_multiple_sample_file
+    zip_names <- index_multiple_sample_file_names
+    if (!is.null(index_multiple_sample_file1) && !is.null(zip_names)) {
+      zip_paths <- file.path(index_multiple_sample_file1, basename(zip_names))
+    }
+
+    spatial_objects <- lapply(seq_along(zip_paths), function(i) {
+      sample_name <- sub("\\.zip$", "", basename(zip_names[[i]]))
+      obj <- load_visium_hd_segmentation_sample_compat(
+        input_path = zip_paths[[i]],
+        sample_name = sample_name,
+        assay = "Spatial",
+        default_assay = "RNA",
+        image_name = "tissue_lowres_image.png",
+        create_rna_assay = TRUE
+      )
+
+      seg_info <- obj@misc$visium_hd_segmentation
+      cells_without_outline <- seg_info$cells_without_outline %||% 0
+      sample_summaries <<- c(
+        sample_summaries,
+        paste0(
+          sample_name,
+          " : ",
+          obj$spatial_source_mode[[1]],
+          " (",
+          format(ncol(obj), big.mark = ","),
+          " segmented cells",
+          if (cells_without_outline > 0) {
+            paste0("; ", format(cells_without_outline, big.mark = ","), " cells without an outline in the GeoJSON were skipped")
+          } else {
+            ""
+          },
+          ")"
+        )
+      )
+
+      obj
+    })
+
+    names(spatial_objects) <- sub("\\.zip$", "", basename(zip_names))
   } else if (index_multiple_sample_format == "MFB") {
     zip_paths <- index_multiple_sample_file
     zip_names <- index_multiple_sample_file_names
@@ -837,7 +897,7 @@ datainput_multiple_sample <- function(index_multiple_sample_file,
   if (length(valid_objects) == 0) {
     return(list(
       is_valid = FALSE,
-      text_summary = "Please check your sample ZIP structure. Supported layouts are standard Space Ranger, Visium HD with binned_outputs, or matrix/barcodes/features plus spatial image files."
+      text_summary = "Please check your sample ZIP structure. Supported layouts are standard Space Ranger, Visium HD with binned_outputs, Visium HD with segmented_outputs, or matrix/barcodes/features plus spatial image files."
     ))
   }
 

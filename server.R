@@ -871,7 +871,7 @@ server <- function(input, output, session) {
       show_ids(paste0("m_marker_box", 5:7))
     }
     if (rank >= 6) {
-      show_ids(paste0("m_celltype_box", 7:11))
+      show_ids(paste0("m_celltype_box", 7:12))
     }
     if (rank >= 7) {
       show_ids(paste0("m_clusterbased_box", 2:4))
@@ -896,7 +896,7 @@ server <- function(input, output, session) {
       show_ids(paste0("m_subclustering_marker_box", 5:7))
     }
     if (rank >= 5) {
-      show_ids(paste0("m_subclustering_celltype_box", 7:11))
+      show_ids(paste0("m_subclustering_celltype_box", 7:12))
     }
     if (rank >= 6) {
       show_ids(paste0("m_subclustering_clusterbased_box", 2:4))
@@ -1310,8 +1310,8 @@ server <- function(input, output, session) {
         folder = c("Single or Multiple Samples Analysis", "Cell Type Prediction"),
         trigger = "multiple_sample_celltype",
         result = function() datainput_multiple_celltype_level(),
-        labels = c(plot1 = "Dimplot_with_celltype", plot2 = "Spatial_Dimplot_with_celltype", plot3 = "score_plot", plot4 = "delta_distribution_plot", table1 = "predicted_celltype_scores"),
-        sizes = list(plot1 = c(width = 16, height = 8), plot2 = c(width = 16, height = 8), plot3 = c(width = 20, height = 8), plot4 = c(width = 8, height = 8))
+        labels = c(plot1 = "Dimplot_with_celltype", plot2 = "Spatial_Dimplot_with_celltype", plot3 = "score_plot", plot4 = "delta_distribution_plot", table1 = "predicted_celltype_scores", celltype_counts = "Number_of_cells_per_celltype", celltype_markers = "Markers_with_celltype_names", celltype_heatmap = "Heatmap_with_top5_expressed_genes_by_celltype"),
+        sizes = list(plot1 = c(width = 16, height = 8), plot2 = c(width = 16, height = 8), plot3 = c(width = 20, height = 8), plot4 = c(width = 8, height = 8), celltype_heatmap = c(width = 12, height = 8))
       ),
       bulk_group(
         folder = c("Single or Multiple Samples Analysis", "Cluster-Based Plots"),
@@ -1386,8 +1386,8 @@ server <- function(input, output, session) {
         folder = c("Subclustering", "Cell Type Prediction"),
         trigger = "subclustering_multiple_sample_celltype",
         result = function() datainput_subclustering_multiple_celltype_level(),
-        labels = c(plot1 = "Dimplot_with_celltype", plot2 = "Spatial_Dimplot_with_celltype", plot3 = "score_plot", plot4 = "delta_distribution_plot", table1 = "predicted_celltype_scores"),
-        sizes = list(plot1 = c(width = 16, height = 8), plot2 = c(width = 16, height = 8), plot3 = c(width = 20, height = 8), plot4 = c(width = 8, height = 8))
+        labels = c(plot1 = "Dimplot_with_celltype", plot2 = "Spatial_Dimplot_with_celltype", plot3 = "score_plot", plot4 = "delta_distribution_plot", table1 = "predicted_celltype_scores", celltype_counts = "Number_of_cells_per_celltype", celltype_markers = "Markers_with_celltype_names", celltype_heatmap = "Heatmap_with_top5_expressed_genes_by_celltype"),
+        sizes = list(plot1 = c(width = 16, height = 8), plot2 = c(width = 16, height = 8), plot3 = c(width = 20, height = 8), plot4 = c(width = 8, height = 8), celltype_heatmap = c(width = 12, height = 8))
       ),
       bulk_group(
         folder = c("Subclustering", "Cluster-Based Plots"),
@@ -2514,6 +2514,8 @@ server <- function(input, output, session) {
 
     upload_label <- if (identical(format_choice, "visium_bin")) {
       "Upload multiple files at once (Visium HD Bin data with binned_outputs and spatial folder ZIP format)"
+    } else if (identical(format_choice, "visium_seg")) {
+      "Upload multiple files at once (Visium HD Cell segmentation data with segmented_outputs and spatial folder ZIP format)"
     } else {
       "Upload multiple files at once (SpaceRanger h5 and spatial image in zip format)"
     }
@@ -2548,6 +2550,14 @@ server <- function(input, output, session) {
       shinyjs::hide("multiple_sample_spatial_mode")
       shinyjs::show("multiple_sample_hd_bin_size")
       shinyjs::show("multiple_sample_hd_hint")
+      shinyjs::show("multiple_sample_submit")
+
+    }
+    else if (input$multiple_sample_format == "visium_seg") {
+      shinyjs::hide("multiple_sample_file_mfb")
+      shinyjs::hide("multiple_sample_spatial_mode")
+      shinyjs::hide("multiple_sample_hd_bin_size")
+      shinyjs::hide("multiple_sample_hd_hint")
       shinyjs::show("multiple_sample_submit")
 
     }
@@ -2983,6 +2993,7 @@ server <- function(input, output, session) {
   shinyjs::hide("m_celltype_box9")
   shinyjs::hide("m_celltype_box10")
   shinyjs::hide("m_celltype_box11")
+  shinyjs::hide("m_celltype_box12")
   
   observe({
     if (input$m_celltype1 == 1) {
@@ -3082,7 +3093,7 @@ server <- function(input, output, session) {
       expr = {
         format <- input$multiple_sample_format
         
-        if (format == "h5" || format == "visium_bin") {
+        if (format == "h5" || format == "visium_bin" || format == "visium_seg") {
           req(input$multiple_sample_file)
           file1 <- input$multiple_sample_file[['datapath']]
           filesdir <- dirname(file1)
@@ -3404,7 +3415,8 @@ server <- function(input, output, session) {
           index_multiple_sample_max_count = input$multiple_sample_max_count,
           index_multiple_sample_min_ncount = input$multiple_sample_min_ncount,
           index_multiple_sample_max_ncount = input$multiple_sample_max_ncount,
-          index_multiple_sample_max_mito_perc = input$multiple_sample_max_mito_perc
+          index_multiple_sample_max_mito_perc = input$multiple_sample_max_mito_perc,
+          index_multiple_sample_min_cells = input$multiple_sample_min_cells
         )
       }
     )
@@ -4316,6 +4328,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_celltype_box9")
       shinyjs::hide("m_celltype_box10")
       shinyjs::hide("m_celltype_box11")
+      shinyjs::hide("m_celltype_box12")
       showNotification(
         "Paste your OpenAI API key in the GPTCelltype key box before submitting.",
         type = "error",
@@ -4332,6 +4345,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_celltype_box9")
       shinyjs::show("m_celltype_box10")
       shinyjs::show("m_celltype_box11")
+      shinyjs::show("m_celltype_box12")
       shinyjs::show("m_celltype9")
       shinyjs::hide("m_celltype10")
     }
@@ -4341,6 +4355,7 @@ server <- function(input, output, session) {
       shinyjs::show("m_celltype_box9")
       shinyjs::show("m_celltype_box10")
       shinyjs::show("m_celltype_box11")
+      shinyjs::show("m_celltype_box12")
       shinyjs::hide("m_celltype9")
       shinyjs::show("m_celltype10")
     }
@@ -4350,6 +4365,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_celltype_box9")
       shinyjs::show("m_celltype_box10")
       shinyjs::show("m_celltype_box11")
+      shinyjs::show("m_celltype_box12")
       shinyjs::hide("m_celltype9")
       shinyjs::hide("m_celltype10")
     }
@@ -4359,6 +4375,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_celltype_box9")
       shinyjs::show("m_celltype_box10")
       shinyjs::show("m_celltype_box11")
+      shinyjs::show("m_celltype_box12")
       shinyjs::hide("m_celltype9")
       shinyjs::hide("m_celltype10")
     }
@@ -4518,6 +4535,71 @@ server <- function(input, output, session) {
   
  
   
+  ##############cell type names: cell counts, marker genes and heatmap###################
+  output$m_celltype2_table <- renderDataTable({
+    celltype_counts <- datainput_multiple_celltype_level()[["celltype_counts"]]
+    shiny::validate(shiny::need(is.data.frame(celltype_counts), "The cell count table is not available for this run."))
+    DT::datatable(celltype_counts,
+                  options = list(
+                    scrollX = TRUE,
+                    pageLength = 10,
+                    dom = "Blfrtip"
+                  ),rownames= FALSE, selection = "none")
+  })
+
+  output$download_m_celltype2_table <- downloadHandler(
+    filename = function() {
+      paste("Number_of_cells_per_celltype", '.csv', sep='') },
+    content = function(file){
+      write.csv(datainput_multiple_celltype_level()[["celltype_counts"]], file, row.names = FALSE)
+    }
+  )
+
+  output$m_celltype3_table <- renderDataTable({
+    celltype_markers <- datainput_multiple_celltype_level()[["celltype_markers"]]
+    shiny::validate(shiny::need(is.data.frame(celltype_markers), "This table needs the markers from 'Identify markers in all clusters' in the Markers Identification step."))
+    DT::datatable(celltype_markers,
+                  options = list(
+                    scrollX = TRUE,
+                    pageLength = 10,
+                    dom = "Blfrtip"
+                  ),rownames= FALSE, selection = "none")
+  })
+
+  output$download_m_celltype3_table <- downloadHandler(
+    filename = function() {
+      paste("Markers_with_celltype_names", '.csv', sep='') },
+    content = function(file){
+      write.csv(datainput_multiple_celltype_level()[["celltype_markers"]], file, row.names = FALSE)
+    }
+  )
+
+  output$m_celltype5_plot<-renderPlot({
+    celltype_heatmap <- datainput_multiple_celltype_level()[["celltype_heatmap"]]
+    shiny::validate(shiny::need(!is.null(celltype_heatmap), "This heatmap needs the markers from 'Identify markers in all clusters' in the Markers Identification step."))
+    celltype_heatmap
+  })
+
+  observeEvent(input$download_m_celltype5_plot, {
+    showModal(modalDialog(
+      title = strong("Download plot"),
+      numericInput("m_celltype5_plot_height", label = h5("Figure height (upto 49 inces)"), value = 8, width = "300px"),
+      numericInput("m_celltype5_plot_width", label = h5("Figure width (upto 49 inces)"), value = 12, width = "300px"),
+      numericInput("m_celltype5_plot_dpi", label = h5("Figure resolution (dpi:72 to 300)"), value = 300, width = "300px"),
+      selectInput("m_celltype5_plot_type", label = "Image format", choices = list("JPG" = ".jpg", "TIFF" =".tiff", "PDF" = ".pdf",  "SVG" = ".svg", "BMP" = ".bmp", "EPS" = ".eps", "PS" = ".ps"), selected = ".jpg"),
+      downloadBttn("m_celltype5_plot_downloadoutput", "Download"),
+      size = "s",
+      easyClose = TRUE,
+    ))
+  })
+  output$m_celltype5_plot_downloadoutput<- downloadHandler(
+    filename = function(){
+      paste("Heatmap_with_top5_expressed_genes_by_celltype", input$m_celltype5_plot_type, sep="")
+    },
+    content = function(file){
+      ggsave(file,plot = datainput_multiple_celltype_level()[["celltype_heatmap"]], width = input$m_celltype5_plot_width, height = input$m_celltype5_plot_height, dpi = input$m_celltype5_plot_dpi, units = "in")
+    }
+  )
   ###################save seurat object after doublet###################
   output$m_celltype <- create_object_download_handler(
     section = "Multiple Samples",
@@ -4568,19 +4650,28 @@ server <- function(input, output, session) {
           options = list(`actions-box` = TRUE)
         )
       })
+    } else if (input$m_clusterbased4 == "predicted") {
+      output$m_clusterbased_6 <- renderUI({
+        celltype_labels <- req(datainput_multiple_celltype_level()[[3]])
+        celltype_labels <- sort(unique(as.character(celltype_labels)))
+        shinyWidgets::pickerInput(
+          inputId = "m_clusterbased6",
+          label = "Select one or multiple cluster(s) for plotting",
+          choices = celltype_labels,
+          selected = celltype_labels,
+          multiple = TRUE,
+          options = list(`actions-box` = TRUE)
+        )
+      })
     }
     
     plot_type <- input$m_clusterbased3
     grouping <- input$m_clusterbased4
     
     if (plot_type %in% c("Dot Plot", "VlnPlot", "RidgePlot")) {
-      if (grouping == "seurat_clusters") {
-        shinyjs::show("m_clusterbased_6")
-        shinyjs::show("m_clusterbased6")
-      } else {
-        shinyjs::hide("m_clusterbased_6")
-        shinyjs::hide("m_clusterbased6")
-      }
+      # the list holds Seurat clusters or the predicted / own label names
+      shinyjs::show("m_clusterbased_6")
+      shinyjs::show("m_clusterbased6")
       
       if (plot_type  %in% c("FeaturePlot", "spatial_plot")) {
         shinyjs::hide("m_clusterbased5")
@@ -4722,6 +4813,20 @@ server <- function(input, output, session) {
   
   
   
+  output$m_conditionbased_cells_ui <- renderUI ({
+    if (identical(input$m_conditionbased_cellgroup, "predicted")) {
+      cell_groups <- sort(unique(as.character(req(datainput_multiple_celltype_level()[[3]]))))
+    } else {
+      cell_groups <- as.character(sort(unique(req(datainput_multiple_celltype_level()[[2]]))))
+    }
+    shinyWidgets::pickerInput(
+      inputId = "m_conditionbased_cells",
+      label = "Select one or multiple cluster(s) / cell type(s) for the analysis (default: all)",
+      choices = cell_groups,
+      selected = cell_groups,
+      multiple = TRUE,
+      options = list(`actions-box` = TRUE))
+  })
   output$m_conditionbased_1 <- renderUI ({
     clusters <- req(datainput_multiple_clustering_level()[[13]])
     
@@ -4759,7 +4864,8 @@ server <- function(input, output, session) {
       params = capture_run_inputs(c("multiple_sample_", "m_conditionbased")),
       expr = {
         source_app_script("scripts/multiple_conditionbased.R")
-        datainput_multiple_conditionbased(index_multiple_conditionbased_input = datainput_multiple_celltype_level()[[1]], index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, index_m_conditionbased1 = input$m_conditionbased1, index_m_conditionbased2 = input$m_conditionbased2, index_m_conditionbased3 = input$m_conditionbased3, index_m_conditionbased4 = input$m_conditionbased4, index_m_conditionbased5 = input$m_conditionbased5, index_m_conditionbased6 = input$m_conditionbased6, index_m_conditionbased7 = input$m_conditionbased7, index_m_conditionbased8 = input$m_conditionbased8, index_m_conditionbased9 = input$m_conditionbased9, index_m_conditionbased10 = input$m_conditionbased10)
+        conditionbased_cell_column <- if (identical(input$m_conditionbased_cellgroup, "predicted")) datainput_multiple_celltype_level()[[4]] else "seurat_clusters"
+        datainput_multiple_conditionbased(index_multiple_conditionbased_input = datainput_multiple_celltype_level()[[1]], index_multiple_sample_normalization_method = input$multiple_sample_normalization_method, index_m_conditionbased1 = input$m_conditionbased1, index_m_conditionbased2 = input$m_conditionbased2, index_m_conditionbased3 = input$m_conditionbased3, index_m_conditionbased4 = input$m_conditionbased4, index_m_conditionbased5 = input$m_conditionbased5, index_m_conditionbased6 = input$m_conditionbased6, index_m_conditionbased7 = input$m_conditionbased7, index_m_conditionbased8 = input$m_conditionbased8, index_m_conditionbased9 = input$m_conditionbased9, index_m_conditionbased10 = input$m_conditionbased10, index_m_conditionbased_cell_column = conditionbased_cell_column, index_m_conditionbased_cells = input$m_conditionbased_cells)
       }
     )
   }, ignoreNULL = FALSE)  
@@ -5135,6 +5241,7 @@ server <- function(input, output, session) {
   shinyjs::hide("m_subclustering_celltype_box9")
   shinyjs::hide("m_subclustering_celltype_box10")
   shinyjs::hide("m_subclustering_celltype_box11")
+  shinyjs::hide("m_subclustering_celltype_box12")
   
   observe({
     if (input$m_subclustering_celltype1 == 1) {
@@ -6076,6 +6183,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_subclustering_celltype_box9")
       shinyjs::hide("m_subclustering_celltype_box10")
       shinyjs::hide("m_subclustering_celltype_box11")
+      shinyjs::hide("m_subclustering_celltype_box12")
       showNotification(
         "Paste your OpenAI API key in the GPTCelltype key box before submitting.",
         type = "error",
@@ -6092,6 +6200,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_subclustering_celltype_box9")
       shinyjs::show("m_subclustering_celltype_box10")
       shinyjs::show("m_subclustering_celltype_box11")
+      shinyjs::show("m_subclustering_celltype_box12")
       shinyjs::show("m_subclustering_celltype9")
       shinyjs::hide("m_subclustering_celltype10")
       
@@ -6102,6 +6211,7 @@ server <- function(input, output, session) {
       shinyjs::show("m_subclustering_celltype_box9")
       shinyjs::show("m_subclustering_celltype_box10")
       shinyjs::show("m_subclustering_celltype_box11")
+      shinyjs::show("m_subclustering_celltype_box12")
       shinyjs::hide("m_subclustering_celltype9")
       shinyjs::show("m_subclustering_celltype10")
     }
@@ -6111,6 +6221,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_subclustering_celltype_box9")
       shinyjs::show("m_subclustering_celltype_box10")
       shinyjs::show("m_subclustering_celltype_box11")
+      shinyjs::show("m_subclustering_celltype_box12")
       shinyjs::hide("m_subclustering_celltype9")
       shinyjs::hide("m_subclustering_celltype10")
     }
@@ -6120,6 +6231,7 @@ server <- function(input, output, session) {
       shinyjs::hide("m_subclustering_celltype_box9")
       shinyjs::show("m_subclustering_celltype_box10")
       shinyjs::show("m_subclustering_celltype_box11")
+      shinyjs::show("m_subclustering_celltype_box12")
       shinyjs::hide("m_subclustering_celltype9")
       shinyjs::hide("m_subclustering_celltype10")
     }
@@ -6280,6 +6392,71 @@ server <- function(input, output, session) {
   
   
   
+  ##############cell type names: cell counts, marker genes and heatmap###################
+  output$m_subclustering_celltype2_table <- renderDataTable({
+    celltype_counts <- datainput_subclustering_multiple_celltype_level()[["celltype_counts"]]
+    shiny::validate(shiny::need(is.data.frame(celltype_counts), "The cell count table is not available for this run."))
+    DT::datatable(celltype_counts,
+                  options = list(
+                    scrollX = TRUE,
+                    pageLength = 10,
+                    dom = "Blfrtip"
+                  ),rownames= FALSE, selection = "none")
+  })
+
+  output$download_m_subclustering_celltype2_table <- downloadHandler(
+    filename = function() {
+      paste("Number_of_cells_per_celltype", '.csv', sep='') },
+    content = function(file){
+      write.csv(datainput_subclustering_multiple_celltype_level()[["celltype_counts"]], file, row.names = FALSE)
+    }
+  )
+
+  output$m_subclustering_celltype3_table <- renderDataTable({
+    celltype_markers <- datainput_subclustering_multiple_celltype_level()[["celltype_markers"]]
+    shiny::validate(shiny::need(is.data.frame(celltype_markers), "This table needs the markers from 'Identify markers in all clusters' in the Markers Identification step."))
+    DT::datatable(celltype_markers,
+                  options = list(
+                    scrollX = TRUE,
+                    pageLength = 10,
+                    dom = "Blfrtip"
+                  ),rownames= FALSE, selection = "none")
+  })
+
+  output$download_m_subclustering_celltype3_table <- downloadHandler(
+    filename = function() {
+      paste("Markers_with_celltype_names", '.csv', sep='') },
+    content = function(file){
+      write.csv(datainput_subclustering_multiple_celltype_level()[["celltype_markers"]], file, row.names = FALSE)
+    }
+  )
+
+  output$m_subclustering_celltype5_plot<-renderPlot({
+    celltype_heatmap <- datainput_subclustering_multiple_celltype_level()[["celltype_heatmap"]]
+    shiny::validate(shiny::need(!is.null(celltype_heatmap), "This heatmap needs the markers from 'Identify markers in all clusters' in the Markers Identification step."))
+    celltype_heatmap
+  })
+
+  observeEvent(input$download_m_subclustering_celltype5_plot, {
+    showModal(modalDialog(
+      title = strong("Download plot"),
+      numericInput("m_subclustering_celltype5_plot_height", label = h5("Figure height (upto 49 inces)"), value = 8, width = "300px"),
+      numericInput("m_subclustering_celltype5_plot_width", label = h5("Figure width (upto 49 inces)"), value = 12, width = "300px"),
+      numericInput("m_subclustering_celltype5_plot_dpi", label = h5("Figure resolution (dpi:72 to 300)"), value = 300, width = "300px"),
+      selectInput("m_subclustering_celltype5_plot_type", label = "Image format", choices = list("JPG" = ".jpg", "TIFF" =".tiff", "PDF" = ".pdf",  "SVG" = ".svg", "BMP" = ".bmp", "EPS" = ".eps", "PS" = ".ps"), selected = ".jpg"),
+      downloadBttn("m_subclustering_celltype5_plot_downloadoutput", "Download"),
+      size = "s",
+      easyClose = TRUE,
+    ))
+  })
+  output$m_subclustering_celltype5_plot_downloadoutput<- downloadHandler(
+    filename = function(){
+      paste("Heatmap_with_top5_expressed_genes_by_celltype", input$m_subclustering_celltype5_plot_type, sep="")
+    },
+    content = function(file){
+      ggsave(file,plot = datainput_subclustering_multiple_celltype_level()[["celltype_heatmap"]], width = input$m_subclustering_celltype5_plot_width, height = input$m_subclustering_celltype5_plot_height, dpi = input$m_subclustering_celltype5_plot_dpi, units = "in")
+    }
+  )
   ###################save seurat object after doublet###################
   output$m_subclustering_celltype <- create_object_download_handler(
     section = "Subclustering",
@@ -6334,19 +6511,28 @@ server <- function(input, output, session) {
           options = list(`actions-box` = TRUE)
         )
       })
+    } else if (input$m_subclustering_clusterbased4 == "predicted") {
+      output$m_subclustering_clusterbased_6 <- renderUI({
+        celltype_labels <- req(datainput_subclustering_multiple_celltype_level()[[3]])
+        celltype_labels <- sort(unique(as.character(celltype_labels)))
+        shinyWidgets::pickerInput(
+          inputId = "m_subclustering_clusterbased6",
+          label = "Select one or multiple cluster(s) for plotting",
+          choices = celltype_labels,
+          selected = celltype_labels,
+          multiple = TRUE,
+          options = list(`actions-box` = TRUE)
+        )
+      })
     }
     
     plot_type <- input$m_subclustering_clusterbased3
     grouping <- input$m_subclustering_clusterbased4
     
     if (plot_type %in% c("Dot Plot", "VlnPlot", "RidgePlot")) {
-      if (grouping == "seurat_clusters") {
-        shinyjs::show("m_subclustering_clusterbased_6")
-        shinyjs::show("m_subclustering_clusterbased6")
-      } else {
-        shinyjs::hide("m_subclustering_clusterbased_6")
-        shinyjs::hide("m_subclustering_clusterbased6")
-      }
+      # the list holds Seurat clusters or the predicted / own label names
+      shinyjs::show("m_subclustering_clusterbased_6")
+      shinyjs::show("m_subclustering_clusterbased6")
       
       if (plot_type %in%  c("FeaturePlot", "spatial_plot")) {
         shinyjs::hide("m_subclustering_clusterbased5")
@@ -6470,6 +6656,20 @@ server <- function(input, output, session) {
   
   
   
+  output$m_subclustering_conditionbased_cells_ui <- renderUI ({
+    if (identical(input$m_subclustering_conditionbased_cellgroup, "predicted")) {
+      cell_groups <- sort(unique(as.character(req(datainput_subclustering_multiple_celltype_level()[[3]]))))
+    } else {
+      cell_groups <- as.character(sort(unique(req(datainput_subclustering_multiple_celltype_level()[[2]]))))
+    }
+    shinyWidgets::pickerInput(
+      inputId = "m_subclustering_conditionbased_cells",
+      label = "Select one or multiple cluster(s) / cell type(s) for the analysis (default: all)",
+      choices = cell_groups,
+      selected = cell_groups,
+      multiple = TRUE,
+      options = list(`actions-box` = TRUE))
+  })
   output$m_subclustering_conditionbased_1 <- renderUI ({
     clusters <- req(datainput_subclustering_multiple_clustering_level()[[13]])
     
@@ -6514,7 +6714,8 @@ server <- function(input, output, session) {
       params = capture_run_inputs(c("subclustering_multiple_sample_", "m_subclustering_conditionbased")),
       expr = {
         source_app_script("scripts/subclustering_multiple_conditionbased.R")
-        datainput_subclustering_multiple_conditionbased(index_subclustering_multiple_conditionbased_input = datainput_subclustering_multiple_celltype_level()[[1]], index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_m_subclustering_conditionbased1 = input$m_subclustering_conditionbased1, index_m_subclustering_conditionbased2 = input$m_subclustering_conditionbased2, index_m_subclustering_conditionbased3 = input$m_subclustering_conditionbased3, index_m_subclustering_conditionbased4 = input$m_subclustering_conditionbased4, index_m_subclustering_conditionbased5 = input$m_subclustering_conditionbased5, index_m_subclustering_conditionbased6 = input$m_subclustering_conditionbased6, index_m_subclustering_conditionbased7 = input$m_subclustering_conditionbased7, index_m_subclustering_conditionbased8 = input$m_subclustering_conditionbased8, index_m_subclustering_conditionbased9 = input$m_subclustering_conditionbased9, index_m_subclustering_conditionbased10 = input$m_subclustering_conditionbased10)
+        conditionbased_cell_column <- if (identical(input$m_subclustering_conditionbased_cellgroup, "predicted")) datainput_subclustering_multiple_celltype_level()[[4]] else "seurat_clusters"
+        datainput_subclustering_multiple_conditionbased(index_subclustering_multiple_conditionbased_input = datainput_subclustering_multiple_celltype_level()[[1]], index_subclustering_multiple_sample_normalization_method = input$subclustering_multiple_sample_normalization_method, index_m_subclustering_conditionbased1 = input$m_subclustering_conditionbased1, index_m_subclustering_conditionbased2 = input$m_subclustering_conditionbased2, index_m_subclustering_conditionbased3 = input$m_subclustering_conditionbased3, index_m_subclustering_conditionbased4 = input$m_subclustering_conditionbased4, index_m_subclustering_conditionbased5 = input$m_subclustering_conditionbased5, index_m_subclustering_conditionbased6 = input$m_subclustering_conditionbased6, index_m_subclustering_conditionbased7 = input$m_subclustering_conditionbased7, index_m_subclustering_conditionbased8 = input$m_subclustering_conditionbased8, index_m_subclustering_conditionbased9 = input$m_subclustering_conditionbased9, index_m_subclustering_conditionbased10 = input$m_subclustering_conditionbased10, index_m_subclustering_conditionbased_cell_column = conditionbased_cell_column, index_m_subclustering_conditionbased_cells = input$m_subclustering_conditionbased_cells)
       }
     )
   }, ignoreNULL = FALSE)  
@@ -8844,6 +9045,7 @@ server <- function(input, output, session) {
       <li><b>Standard Space Ranger or Visium HD output</b> can be uploaded as one ZIP file per sample.</li>
 <li><b>Standard layout:</b> include filtered_feature_bc_matrix.h5 together with the spatial image folder inside the sample ZIP.</li>
 <li><b>Visium HD Bin data layout:</b> include the binned_outputs folder together with the spatial folder inside the sample ZIP. Supported bin folders are square_008um, square_016um, and square_002um; choose 8 um, 16 um, or 2 um in the bin-size selector.</li>
+<li><b>Visium HD Cell segmentation data layout:</b> include the segmented_outputs folder (filtered_feature_cell_matrix.h5 and cell_segmentations.geojson) together with one spatial folder that holds scalefactors_json.json and the tissue images. This needs Space Ranger 4.0 or later; each cell is placed at the centre of its segmented outline.</li>
 <li><b>Fallback behavior:</b> if a sample does not contain Visium HD bins, the app automatically loads the standard spatial structure instead.</li>
 <li><b>Upload Space Ranger Matrix Files (mtx, features, barcodes) and spatial image folder</b>  Space Ranger files: matrix.mtx.gz, feature.tsv.gz, barcode.tsv.gz, spatial image folder and zip it to single folder for each samples.</li>
 <li><b>Previously generated VST-DAVis Seurat object:</b> choose an RDS downloaded by VST-DAVis without renaming it, then click <b>Submit</b>. The filename identifies and restores the completed workflow page.</li>
@@ -8871,6 +9073,7 @@ server <- function(input, output, session) {
 <li><b>Max mitochondrial %</b> (Default: 5) – Removes cells with excessive mitochondrial gene expression, often indicating low-quality or dying cells. [Recommended: <10%].</li>
 <li><b>Min nCount per spot/bin</b> (Default: 0) - Filters out spots or bins with fewer than this number of total counts.</li>
 <li><b>Max nCount per spot/bin</b> (Default: 100000) - Filters out spots or bins with unusually high total counts.</li>
+<li><b>Minimum cells expressing each gene (min.cells)</b> (Default: 0) – Keeps genes detected in at least this many retained spots or bins. A value of 0 disables this gene-level filter.</li>
     </ul>
     "),
       easyClose = TRUE,

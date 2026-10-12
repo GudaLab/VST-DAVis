@@ -133,6 +133,13 @@ visium_hd_compat_resolve_dir <- function(input_path) {
     return(normalizePath(top_dirs[[1]], winslash = "/", mustWork = TRUE))
   }
 
+  if (exists("visium_hd_seg_has_outputs", mode = "function") && visium_hd_seg_has_outputs(exdir)) {
+    stop(
+      "This upload contains Visium HD cell segmentation results (segmented_outputs) but no binned_outputs folder. ",
+      "Select 'Visium HD Cell segmentation data' as the input format."
+    )
+  }
+
   stop("Could not resolve a Visium HD sample directory from: ", input_path)
 }
 
